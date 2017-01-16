@@ -2,8 +2,11 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <vector>
 #include <cstdio>
+#include <string>
 #include "mat.h"
 
 #define OBJ_LOADER_IMPLEMENTATION
@@ -72,15 +75,12 @@ int main()
 		Questions:
 			Does uploading mesh to vbo means the mesh now also lives on the GPU?
 	*/
-    const char *model_base_path = "models/";
-    char model_file_path[256];
-    char tex_file_path[256];
-    strcat(model_file_path, model_base_path);
-    strcat(model_file_path, "Ship2.obj");
+    std::string model_base_path("models/");    
+    std::string model_file_path(model_base_path + "Ship2.obj");
 	OBJShape *obj_shapes;
     OBJMaterial *obj_materials;
     int num_shapes, num_mat;
-    loadOBJ(&obj_shapes, &obj_materials, &num_shapes, &num_mat, model_file_path);
+    loadOBJ(&obj_shapes, &obj_materials, &num_shapes, &num_mat, model_file_path.c_str());
 
 	std::vector<float> triangles;
 	OBJToTriangles(triangles, obj_shapes[0]);
@@ -92,28 +92,30 @@ int main()
 	GLuint vbo;
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * triangles.size(), &(triangles[0]), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * triangles.size(),
+                 &(triangles[0]), GL_STATIC_DRAW);
 
-	const char* vertSrc = GLSL(
-		in vec3 position;
-		void main()
-		{
-			gl_Position = vec4(position, 1.0f);
-		}	
-	);
+    // Vertex shader
+    std::ifstream vert_fstream("shaders/first.vs");
+    std::stringstream buffer;
+    buffer << vert_fstream.rdbuf();
+    vert_fstream.close();
+    std::string vert_src = buffer.str();
+    const char* vert_src_cstr = vert_src.c_str();
+
 	GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertShader, 1, &vertSrc, NULL);
+	glShaderSource(vertShader, 1, &(vert_src_cstr), NULL);
 	glCompileShader(vertShader);
 
-	const char* fragSrc = GLSL(
-		out vec4 outColor;
-		void main()
-		{
-			outColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		}
-	);
+    // Fragment shader
+    std::ifstream frag_fstream("shaders/first.fs");
+    buffer.str("");
+    buffer << frag_fstream.rdbuf();
+    std::string frag_src = buffer.str();
+    const char* frag_src_cstr = frag_src.c_str();
+    
 	GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragShader, 1, &fragSrc, NULL);
+	glShaderSource(fragShader, 1, &(frag_src_cstr), NULL);
 	glCompileShader(fragShader);
 
 	GLuint shaderProgram = glCreateProgram();
