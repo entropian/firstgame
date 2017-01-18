@@ -50,9 +50,9 @@ void OBJToTriangles(std::vector<float>& triangles, const OBJShape& obj_shape)
 	for (int i = 0; i < obj_shape.num_indices; ++i)
 	{
 		int index = obj_shape.indices[i] * 3;
-		triangles.push_back(obj_shape.positions[index] / 10.0f);
-		triangles.push_back(obj_shape.positions[index + 1] / 10.0f);
-		triangles.push_back(obj_shape.positions[index + 2] / 10.0f);
+		triangles.push_back(obj_shape.positions[index]);
+		triangles.push_back(obj_shape.positions[index + 1]);
+		triangles.push_back(obj_shape.positions[index + 2]);
 	}
 }
 
@@ -75,6 +75,8 @@ int main()
 		Questions:
 			Does uploading mesh to vbo means the mesh now also lives on the GPU?
 	*/
+    
+    // Loading scene data
     std::string model_base_path("models/");    
     std::string model_file_path(model_base_path + "Ship2.obj");
 	OBJShape *obj_shapes;
@@ -82,6 +84,7 @@ int main()
     int num_shapes, num_mat;
     loadOBJ(&obj_shapes, &obj_materials, &num_shapes, &num_mat, model_file_path.c_str());
 
+    // Geometry
 	std::vector<float> triangles;
 	OBJToTriangles(triangles, obj_shapes[0]);
 
@@ -124,6 +127,15 @@ int main()
 	glBindFragDataLocation(shaderProgram, 0, "outColor");
 	glLinkProgram(shaderProgram);
 	glUseProgram(shaderProgram);
+
+    // Transforms
+    Mat4 scale = Mat4::makeScale(Vec3(0.1f, 0.1f, 0.1f));
+    Mat4 rotation = Mat4::makeXRotation(90.0f);
+    Mat4 transform = rotation * scale;
+
+    // Setting uniforms
+    GLint model_view_handle = glGetUniformLocation(shaderProgram, "model_view");
+    glUniformMatrix4fv(model_view_handle, 1, GL_FALSE, &(transform.data[0][0]));
 
 	GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
 	glEnableVertexAttribArray(posAttrib);

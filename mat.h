@@ -79,6 +79,23 @@ struct Mat
 		}
 		return *this;
 	}
+
+    Mat4 operator * (const Mat4& m) const
+    {
+        Mat4 r(0.0f);
+        for(int i = 0; i < 4; i++)
+        {
+            for(int j = 0; j < 4; j++)
+            {
+                for(int k = 0; k < 4; k++)
+                {
+                    r(i, k) += (*this)(i, j) * m(j, k);
+                }
+            }
+        }
+        return r;
+    }
+    
 	Mat& operator /=(const T& t)
 	{
 		const T inv = 1 / t;
@@ -124,6 +141,7 @@ struct Mat
 		}
 		return r;
 	}
+    
 
 	static Mat4 makeXRotation(const float angle)
 	{
