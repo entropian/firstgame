@@ -8,11 +8,27 @@
 #include <cstdio>
 #include <string>
 #include "mat.h"
+#include "texture.h"
 
 #define OBJ_LOADER_IMPLEMENTATION
 #include "objloader/objloader.h"
 
-#define GLSL(src) "#version 150 core\n" #src
+
+
+bool EXIT = false;
+
+void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+    if(action == GLFW_PRESS)
+    {
+        switch(key)
+        {
+        case GLFW_KEY_Q:
+            EXIT = true;
+            break;
+        }
+    }
+}
 
 GLFWwindow* initWindow(unsigned int width, unsigned int height)
 {
@@ -59,22 +75,30 @@ void OBJToTriangles(std::vector<float>& triangles, const OBJShape& obj_shape)
 int main()
 {
 	GLFWwindow *window = initWindow(720, 480);
+    glfwSetKeyCallback(window, keyCallback);
 	/*
 		TODO:
 		glfwSetMouseButtonCallback(window, mouseButtonCallback);
 		glfwSetCursorPosCallback(window, cursorPosCallback);
-		glfwSetKeyCallback(window, keyCallback);
 	*/
 
 	/*
 		Input data:
 			mesh
+               ship
+            level geometry
 			texture
-			shaders
+               ship texture
+               cube map
+			shaders            
 
 		Questions:
 			Does uploading mesh to vbo means the mesh now also lives on the GPU?
 	*/
+
+    GLint num_tex_units;
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &num_tex_units);
+    std::cout << "Number of texture units: " << num_tex_units << std::endl;
     
     // Loading scene data
     std::string model_base_path("models/");    
@@ -97,6 +121,31 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * triangles.size(),
                  &(triangles[0]), GL_STATIC_DRAW);
+
+    // Texture
+    /* Loading texture files into memory  */
+    Texture ship_diffuse_tex("models/Ship2_diffuse.png");
+    Texture ship_normal_tex("models/Ship2_Normal.png");
+
+    /* Load textures into texture objects */
+    glActiveTexture(GL_TEXTURE0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    GLuint ship_diffuse_handle, ship_normal_handle;
+    glGenTextures(1, &ship_diffuse_handle);
+    glGenTextures(1, &ship_normal_handle);
+
+    glBindTexture(GL_TEXTURE_2D, ship_diffuse_handle);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ship_diffuse_tex.width, ship_diffuse_tex.height, 0, GL_RGB,
+                 GL_UNSIGNED_BYTE, ship_diffuse_tex.data);
+
+    glBindTexture(GL_TEXTURE_2D, ship_normal_handle);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ship_normal_tex.width, ship_normal_tex.height, 0, GL_RGB,
+                 GL_UNSIGNED_BYTE, ship_normal_tex.data);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     // Vertex shader
     std::ifstream vert_fstream("shaders/first.vs");
@@ -133,7 +182,6 @@ int main()
     Mat4 view_transform = Mat4::makeTranslation(-camera_pos);
 
     Mat4 proj_transform(Mat4::makePerspective(60.0f, 16.0f/9.0f, 0.001f, 50.0f));
-    printMat4(proj_transform);
     
     Mat4 scale = Mat4::makeScale(Vec3(0.1f, 0.1f, 0.1f));
     Mat4 rotation = Mat4::makeXRotation(90.0f);
@@ -151,7 +199,7 @@ int main()
 	glEnableVertexAttribArray(posAttrib);
 	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-	while (!glfwWindowShouldClose(window))
+	while (!glfwWindowShouldClose(window) && !EXIT)
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -167,7 +215,7 @@ int main()
 	glDeleteShader(vertShader);
 	glDeleteBuffers(1, &vbo);
 	glDeleteVertexArrays(1, &vao);
-	
+
 	for (int i = 0; i < num_shapes; ++i)
 	{
 		OBJShape_destroy(&(obj_shapes[i]));
