@@ -129,14 +129,24 @@ int main()
 	glUseProgram(shaderProgram);
 
     // Transforms
+    Vec3 camera_pos(0.0f, 0.0f, 0.0f);
+    Mat4 view_transform = Mat4::makeTranslation(-camera_pos);
+
+    Mat4 proj_transform(Mat4::makePerspective(60.0f, 16.0f/9.0f, 0.001f, 50.0f));
+    printMat4(proj_transform);
+    
     Mat4 scale = Mat4::makeScale(Vec3(0.1f, 0.1f, 0.1f));
     Mat4 rotation = Mat4::makeXRotation(90.0f);
-    Mat4 transform = rotation * scale;
+    Mat4 translation = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 0.0f));
+    Mat4 transform = view_transform * translation * rotation * scale;
 
     // Setting uniforms
     GLint model_view_handle = glGetUniformLocation(shaderProgram, "model_view");
-    glUniformMatrix4fv(model_view_handle, 1, GL_FALSE, &(transform.data[0][0]));
+    GLint proj_handle = glGetUniformLocation(shaderProgram, "projection");
+    glUniformMatrix4fv(model_view_handle, 1, GL_TRUE, &(transform.data[0][0]));
+    glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_transform.data[0][0]));
 
+    // Setting attributes
 	GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
 	glEnableVertexAttribArray(posAttrib);
 	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);

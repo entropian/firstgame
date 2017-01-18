@@ -1,5 +1,6 @@
 #pragma once
 #include "vec.h"
+
 template <typename T, int rows, int cols> struct Mat;
 typedef Mat<float, 4, 4> Mat4;
 
@@ -204,10 +205,46 @@ struct Mat
 	static Mat4 makePerspective(const float fovy, const float aspect_ratio, const float z_near,
 		const float z_far)
 	{
-		Mat4 r;
+        Mat4 r;
+        float ang = fovy*0.5f*(float)PI/180.0f;
+        float f = fabs(sin(ang)) < EPS ? 0 : 1/tan(ang);
+        if(abs(aspect_ratio) > EPS)
+        {
+            r(0, 0) = f/aspect_ratio;
+        }
 
-		return r;
+        r(1, 1) = f;
+
+        if(fabs(z_far - z_near) > EPS)
+        {
+            // TODO: figure out why the matrix4.h version is positive
+            //       and figure out how the glm version works
+            r(2, 2) = -(z_far + z_near)/(z_far - z_near);
+            r(2, 3) = (float)(-2.0*z_far*z_near/(z_far-z_near));
+        }
+
+        r(3, 2) = -1.0;
+        return r;
 	}
 };
+
+static Mat4 lookAt(const Vec3& pos, const Vec3& look_point, const Vec3& up_vec)
+{
+    // TODO: test this
+    Vec3 z_vec(normalize(pos - look_point));
+    Vec3 x_vec(normalize(cross(z_vec, up_vec)));
+    Vec3 y_vec(cross(x_vec, z_vec));
+    Mat4 ret(Mat4::makeTranslation(-pos));
+    ret(0, 0) = x_vec[0];
+    ret(1, 0) = x_vec[1];
+    ret(2, 0) = x_vec[2];
+    ret(0, 1) = y_vec[0];
+    ret(1, 1) = y_vec[1];
+    ret(2, 1) = y_vec[2];
+    ret(0, 2) = z_vec[0];
+    ret(1, 2) = z_vec[1];
+    ret(2, 2) = z_vec[2];
+    return ret;
+}
 
 
