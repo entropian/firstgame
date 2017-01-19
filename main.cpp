@@ -13,8 +13,6 @@
 #define OBJ_LOADER_IMPLEMENTATION
 #include "objloader/objloader.h"
 
-
-
 bool EXIT = false;
 
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -47,7 +45,7 @@ GLFWwindow* initWindow(unsigned int width, unsigned int height)
 
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-	GLFWwindow *window = glfwCreateWindow(width, height, "CRaytracer", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(width, height, "firstgame", NULL, NULL);
 	glfwSetWindowPos(window, 600, 100);
 	glfwMakeContextCurrent(window);
 
@@ -109,9 +107,24 @@ int main()
     loadOBJ(&obj_shapes, &obj_materials, &num_shapes, &num_mat, model_file_path.c_str());
 
     // Geometry
-	std::vector<float> triangles;
-	OBJToTriangles(triangles, obj_shapes[0]);
-
+    OBJShape *ship = &(obj_shapes[0]);
+    std::vector<GLfloat> ship_vert_data;
+    std::cout << "num_positions: " << ship->num_positions << std::endl;
+    std::cout << "num_normals: " << ship->num_normals << std::endl;
+    std::cout << "num_texcoords: " << ship->num_texcoords << std::endl;
+    ship_vert_data.reserve(ship->num_positions + ship->num_normals + ship->num_texcoords);
+    for(int i = 0; i < ship->num_positions/3; i++)
+    {
+        ship_vert_data.push_back(ship->positions[i*3]);
+        ship_vert_data.push_back(ship->positions[i*3 + 1]);
+        ship_vert_data.push_back(ship->positions[i*3 + 2]);
+        ship_vert_data.push_back(ship->normals[i*3]);
+        ship_vert_data.push_back(ship->normals[i*3 + 1]);
+        ship_vert_data.push_back(ship->normals[i*3 + 2]);
+        ship_vert_data.push_back(ship->texcoords[i*2]);
+        ship_vert_data.push_back(ship->texcoords[i*2 + 1]);
+    }
+        
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -119,8 +132,14 @@ int main()
 	GLuint vbo;
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * triangles.size(),
-                 &(triangles[0]), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * ship_vert_data.size(),
+                 &(ship_vert_data[0]), GL_STATIC_DRAW);
+
+    GLuint ibo;
+    glGenBuffers(1, &ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * ship->num_indices, ship->indices, GL_STATIC_DRAW);
+        
 
     // Texture
     /* Loading texture files into memory  */
@@ -128,24 +147,29 @@ int main()
     Texture ship_normal_tex("models/Ship2_Normal.png");
 
     /* Load textures into texture objects */
+    GLuint ship_diffuse_handle, ship_normal_handle;
+    glGenTextures(1, &ship_diffuse_handle);
+    glGenTextures(1, &ship_normal_handle);
+
     glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, ship_diffuse_handle);
+    printf("diffuse width = %d\ndiffuse height = %d\n", ship_diffuse_tex.width, ship_diffuse_tex.height);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ship_diffuse_tex.width, ship_diffuse_tex.height, 0, GL_RGB,
+                 GL_UNSIGNED_BYTE, ship_diffuse_tex.data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    GLuint ship_diffuse_handle, ship_normal_handle;
-    glGenTextures(1, &ship_diffuse_handle);
-    glGenTextures(1, &ship_normal_handle);
-
-    glBindTexture(GL_TEXTURE_2D, ship_diffuse_handle);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ship_diffuse_tex.width, ship_diffuse_tex.height, 0, GL_RGB,
-                 GL_UNSIGNED_BYTE, ship_diffuse_tex.data);
-
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, ship_normal_handle);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ship_normal_tex.width, ship_normal_tex.height, 0, GL_RGB,
                  GL_UNSIGNED_BYTE, ship_normal_tex.data);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);    
 
     // Vertex shader
     std::ifstream vert_fstream("shaders/first.vs");
@@ -159,6 +183,17 @@ int main()
 	glShaderSource(vertShader, 1, &(vert_src_cstr), NULL);
 	glCompileShader(vertShader);
 
+    GLint status;
+    GLchar info_log[512];
+    glGetShaderiv(vertShader, GL_COMPILE_STATUS, &status);
+
+    if(status != GL_TRUE)
+    {
+        glGetShaderInfoLog(vertShader, 512, NULL, info_log);
+        fprintf(stderr, "Vertex shader compiled incorrectly.\n");
+        fprintf(stderr, "%s\n", info_log);
+    }
+
     // Fragment shader
     std::ifstream frag_fstream("shaders/first.fs");
     buffer.str("");
@@ -169,6 +204,15 @@ int main()
 	GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragShader, 1, &(frag_src_cstr), NULL);
 	glCompileShader(fragShader);
+
+    glGetShaderiv(fragShader, GL_COMPILE_STATUS, &status);
+
+    if(status != GL_TRUE)
+    {
+        glGetShaderInfoLog(fragShader, 512, NULL, info_log);
+        fprintf(stderr, "Fragment shader compiled incorrectly.\n");
+        fprintf(stderr, "%s\n", info_log);
+    }
 
 	GLuint shaderProgram = glCreateProgram();
 	glAttachShader(shaderProgram, vertShader);
@@ -190,21 +234,35 @@ int main()
 
     // Setting uniforms
     GLint model_view_handle = glGetUniformLocation(shaderProgram, "model_view");
-    GLint proj_handle = glGetUniformLocation(shaderProgram, "projection");
     glUniformMatrix4fv(model_view_handle, 1, GL_TRUE, &(transform.data[0][0]));
+    GLint proj_handle = glGetUniformLocation(shaderProgram, "projection");
     glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_transform.data[0][0]));
+    GLint diffuse_map_handle = glGetUniformLocation(shaderProgram, "diffuse_map");
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, ship_diffuse_handle);
+    glUniform1i(diffuse_map_handle, 0);
 
     // Setting attributes
+    GLsizei stride = sizeof(GLfloat) * 8; /* 3 pos + 3 pos + 2 texcoord */
 	GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
 	glEnableVertexAttribArray(posAttrib);
-	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, stride, 0);
 
+    GLint normAttrib = glGetAttribLocation(shaderProgram, "normal");
+    glEnableVertexAttribArray(normAttrib);
+    glVertexAttribPointer(normAttrib, 3, GL_FLOAT, GL_FALSE, stride, (const void*)(sizeof(GLfloat) * 3));
+
+    GLint texcoordAttrib = glGetAttribLocation(shaderProgram, "texcoord");
+    glEnableVertexAttribArray(texcoordAttrib);
+    glVertexAttribPointer(texcoordAttrib, 2, GL_FLOAT, GL_FALSE, stride, (const void*)(sizeof(GLfloat) * 6));
+
+    glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window) && !EXIT)
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glDrawArrays(GL_TRIANGLES, 0, triangles.size());
+        glDrawElements(GL_TRIANGLES, ship->num_indices, GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
