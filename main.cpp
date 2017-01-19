@@ -59,15 +59,29 @@ GLFWwindow* initWindow(unsigned int width, unsigned int height)
 	return window;
 }
 
-void OBJToTriangles(std::vector<float>& triangles, const OBJShape& obj_shape)
+GLuint loadShader(const char *file_path, const GLenum shader_type)
 {
-	for (int i = 0; i < obj_shape.num_indices; ++i)
-	{
-		int index = obj_shape.indices[i] * 3;
-		triangles.push_back(obj_shape.positions[index]);
-		triangles.push_back(obj_shape.positions[index + 1]);
-		triangles.push_back(obj_shape.positions[index + 2]);
-	}
+	GLuint shader = glCreateShader(shader_type);
+	glShaderSource(shader, 1, &(file_path), NULL);
+	glCompileShader(shader);
+
+    GLint status;
+    GLchar info_log[512];
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+
+    if(status != GL_TRUE)
+    {
+        glGetShaderInfoLog(shader, 512, NULL, info_log);
+        if(shader_type == GL_VERTEX_SHADER)
+        {
+            fprintf(stderr, "Vertex shader compiled incorrectly.\n");
+        }else if(shader_type == GL_FRAGMENT_SHADER)
+        {
+            fprintf(stderr, "Fragment shader compiled incorrectly.\n");
+        }
+        fprintf(stderr, "%s\n", info_log);
+    }
+    return shader;
 }
 
 int main()
@@ -122,7 +136,7 @@ int main()
         ship_vert_data.push_back(ship->normals[i*3 + 1]);
         ship_vert_data.push_back(ship->normals[i*3 + 2]);
         ship_vert_data.push_back(ship->texcoords[i*2]);
-        ship_vert_data.push_back(ship->texcoords[i*2 + 1]);
+        ship_vert_data.push_back(-ship->texcoords[i*2 + 1]);
     }
         
 	GLuint vao;
@@ -153,7 +167,6 @@ int main()
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, ship_diffuse_handle);
-    printf("diffuse width = %d\ndiffuse height = %d\n", ship_diffuse_tex.width, ship_diffuse_tex.height);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ship_diffuse_tex.width, ship_diffuse_tex.height, 0, GL_RGB,
                  GL_UNSIGNED_BYTE, ship_diffuse_tex.data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -171,48 +184,21 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);    
 
-    // Vertex shader
+    // Shaders
     std::ifstream vert_fstream("shaders/first.vs");
     std::stringstream buffer;
     buffer << vert_fstream.rdbuf();
     vert_fstream.close();
     std::string vert_src = buffer.str();
-    const char* vert_src_cstr = vert_src.c_str();
+    const char* vert_src_cstr = vert_src.c_str();    
+    GLuint vertShader = loadShader(vert_src_cstr, GL_VERTEX_SHADER);
 
-	GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertShader, 1, &(vert_src_cstr), NULL);
-	glCompileShader(vertShader);
-
-    GLint status;
-    GLchar info_log[512];
-    glGetShaderiv(vertShader, GL_COMPILE_STATUS, &status);
-
-    if(status != GL_TRUE)
-    {
-        glGetShaderInfoLog(vertShader, 512, NULL, info_log);
-        fprintf(stderr, "Vertex shader compiled incorrectly.\n");
-        fprintf(stderr, "%s\n", info_log);
-    }
-
-    // Fragment shader
     std::ifstream frag_fstream("shaders/first.fs");
     buffer.str("");
     buffer << frag_fstream.rdbuf();
     std::string frag_src = buffer.str();
     const char* frag_src_cstr = frag_src.c_str();
-    
-	GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragShader, 1, &(frag_src_cstr), NULL);
-	glCompileShader(fragShader);
-
-    glGetShaderiv(fragShader, GL_COMPILE_STATUS, &status);
-
-    if(status != GL_TRUE)
-    {
-        glGetShaderInfoLog(fragShader, 512, NULL, info_log);
-        fprintf(stderr, "Fragment shader compiled incorrectly.\n");
-        fprintf(stderr, "%s\n", info_log);
-    }
+    GLuint fragShader = loadShader(frag_src_cstr, GL_FRAGMENT_SHADER);
 
 	GLuint shaderProgram = glCreateProgram();
 	glAttachShader(shaderProgram, vertShader);
@@ -222,13 +208,13 @@ int main()
 	glUseProgram(shaderProgram);
 
     // Transforms
-    Vec3 camera_pos(0.0f, 0.0f, 0.0f);
+    Vec3 camera_pos(0.0f, 0.5f, 2.0f);
     Mat4 view_transform = Mat4::makeTranslation(-camera_pos);
 
-    Mat4 proj_transform(Mat4::makePerspective(60.0f, 16.0f/9.0f, 0.001f, 50.0f));
+    Mat4 proj_transform(Mat4::makePerspective(70.0f, 16.0f/9.0f, 0.001f, 50.0f));
     
-    Mat4 scale = Mat4::makeScale(Vec3(0.1f, 0.1f, 0.1f));
-    Mat4 rotation = Mat4::makeXRotation(90.0f);
+    Mat4 scale = Mat4::makeScale(Vec3(0.2f, 0.2f, 0.2f));
+    Mat4 rotation = Mat4::makeYRotation(180.0f) * Mat4::makeXRotation(90.0f);
     Mat4 translation = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 0.0f));
     Mat4 transform = view_transform * translation * rotation * scale;
 
