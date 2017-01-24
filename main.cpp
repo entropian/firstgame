@@ -153,9 +153,13 @@ int main()
     glGenBuffers(1, &ibo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLint) * ship->num_indices, ship->indices, GL_STATIC_DRAW);
-        
 
-    // Texture
+    // Light
+    //Vec3 dir_light_1(normalize(Vec3(1.0f, 1.0f, 1.0f)));
+    Vec3 dir_light_1(normalize(Vec3(-1.0f, 1.0f, 1.0f)));
+    Vec3 dir_light_2(normalize(Vec3(1.0f, 1.0f, 1.0f)));
+        
+    // Textures
     /* Loading texture files into memory  */
     Texture ship_diffuse_tex("models/Ship2_diffuse.png");
     Texture ship_normal_tex("models/Ship2_Normal.png");
@@ -185,27 +189,29 @@ int main()
     glBindTexture(GL_TEXTURE_2D, 0);    
 
     // Shaders
-    std::ifstream vert_fstream("shaders/first.vs");
+    std::ifstream vert_fstream("shaders/ship.vs");
     std::stringstream buffer;
     buffer << vert_fstream.rdbuf();
     vert_fstream.close();
     std::string vert_src = buffer.str();
     const char* vert_src_cstr = vert_src.c_str();    
-    GLuint vertShader = loadShader(vert_src_cstr, GL_VERTEX_SHADER);
+    GLuint vert_shader = loadShader(vert_src_cstr, GL_VERTEX_SHADER);
 
-    std::ifstream frag_fstream("shaders/first.fs");
+    std::ifstream frag_fstream("shaders/ship.fs");
     buffer.str("");
     buffer << frag_fstream.rdbuf();
     std::string frag_src = buffer.str();
     const char* frag_src_cstr = frag_src.c_str();
-    GLuint fragShader = loadShader(frag_src_cstr, GL_FRAGMENT_SHADER);
+    GLuint frag_shader = loadShader(frag_src_cstr, GL_FRAGMENT_SHADER);
 
 	GLuint shaderProgram = glCreateProgram();
-	glAttachShader(shaderProgram, vertShader);
-	glAttachShader(shaderProgram, fragShader);
+	glAttachShader(shaderProgram, vert_shader);
+	glAttachShader(shaderProgram, frag_shader);
 	glBindFragDataLocation(shaderProgram, 0, "outColor");
 	glLinkProgram(shaderProgram);
 	glUseProgram(shaderProgram);
+    glDeleteShader(frag_shader);
+    glDeleteShader(vert_shader);
 
     // Transforms
     Vec3 camera_pos(0.0f, 0.5f, 2.0f);
@@ -216,17 +222,26 @@ int main()
     Mat4 scale = Mat4::makeScale(Vec3(0.2f, 0.2f, 0.2f));
     Mat4 rotation = Mat4::makeYRotation(180.0f) * Mat4::makeXRotation(90.0f);
     Mat4 translation = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 0.0f));
-    Mat4 transform = view_transform * translation * rotation * scale;
+    Mat4 model = translation * rotation * scale;
+    Mat4 transform = view_transform * model;
+    Mat4 normal_transform = (model.inverse()).transpose();
 
     // Setting uniforms
-    GLint model_view_handle = glGetUniformLocation(shaderProgram, "model_view");
+    GLint model_view_handle = glGetUniformLocation(shaderProgram, "model_view_mat");
     glUniformMatrix4fv(model_view_handle, 1, GL_TRUE, &(transform.data[0][0]));
-    GLint proj_handle = glGetUniformLocation(shaderProgram, "projection");
+    GLint proj_handle = glGetUniformLocation(shaderProgram, "proj_mat");
     glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_transform.data[0][0]));
+    GLint normal_transform_handle = glGetUniformLocation(shaderProgram, "normal_mat");
+    glUniformMatrix4fv(normal_transform_handle, 1, GL_TRUE, &(normal_transform.data[0][0]));
+    
     GLint diffuse_map_handle = glGetUniformLocation(shaderProgram, "diffuse_map");
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, ship_diffuse_handle);
     glUniform1i(diffuse_map_handle, 0);
+    GLint dir_light_1_handle = glGetUniformLocation(shaderProgram, "dir_light_1");
+    glUniform3fv(dir_light_1_handle, 1, (const GLfloat*)(dir_light_1.data));
+    GLint dir_light_2_handle = glGetUniformLocation(shaderProgram, "dir_light_2");
+    glUniform3fv(dir_light_2_handle, 1, (const GLfloat*)(dir_light_2.data));
 
     // Setting attributes
     GLsizei stride = sizeof(GLfloat) * 8; /* 3 pos + 3 pos + 2 texcoord */
@@ -255,9 +270,8 @@ int main()
 	}
 
 	glDeleteProgram(shaderProgram);
-	glDeleteShader(fragShader);
-	glDeleteShader(vertShader);
 	glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &ibo);
 	glDeleteVertexArrays(1, &vao);
 
 	for (int i = 0; i < num_shapes; ++i)

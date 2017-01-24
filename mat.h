@@ -226,6 +226,80 @@ struct Mat
         r(3, 2) = -1.0;
         return r;
 	}
+
+    Mat4 transpose()
+    {
+        Mat4 ret;
+        for(int i = 0; i < 4; i++)
+        {
+            for(int j = 0; j < 4; j++)
+            {
+                ret(i, j) = (*this)(j, i);
+            }
+        }
+        return ret;
+    }
+
+    Mat4 inverse()
+    {
+        Mat4 &m = *this;
+        const Vec3 a(m(0, 0), m(1, 0), m(2, 0));
+        const Vec3 b(m(0, 1), m(1, 1), m(2, 1));
+        const Vec3 c(m(0, 2), m(1, 2), m(2, 2));
+        const Vec3 d(m(0, 3), m(1, 3), m(2, 3));
+
+        const float& x = m(3, 0);
+        const float& y = m(3, 1);
+        const float& z = m(3, 2);
+        const float& w = m(3, 3);
+
+        Vec3 s = cross(a, b);
+        Vec3 t = cross(c, d);
+
+        Vec3 u = a*y - b*x;
+        Vec3 v = c*w - d*z;
+
+        float inv_det = 1.0f / (dot(s, v) + dot(t, u));
+        s *= inv_det;
+        t *= inv_det;
+        u *= inv_det;
+        v *= inv_det;
+
+        Vec3 r0 = cross(b, v) + t * y;
+        Vec3 r1 = cross(v, a) - t * x;
+        Vec3 r2 = cross(d, u) + s * w;
+        Vec3 r3 = cross(u, c) - s * z;
+
+        Mat4 ret;
+        ret(0, 0) = r0[0];
+        ret(0, 1) = r0[1];
+        ret(0, 2) = r0[2];
+        ret(0, 3) = -dot(b, t);
+
+        ret(1, 0) = r1[0];
+        ret(1, 1) = r1[1];
+        ret(1, 2) = r1[2];
+        ret(1, 3) = dot(a, t);
+
+        ret(2, 0) = r2[0];
+        ret(2, 1) = r2[1];
+        ret(2, 2) = r2[2];
+        ret(2, 3) = -dot(d, s);
+
+        ret(3, 0) = r3[0];
+        ret(3, 1) = r3[1];
+        ret(3, 2) = r3[2];
+        ret(3, 3) = dot(c, s);
+        return ret;
+        /*
+        return Mat4(r0[0], r0[1], r0[2], -dot(b, t),
+                    r1[0], r1[1], r1[2], dot(a, t),
+                    r2[0], r2[1], r2[2], -dot(d, s),
+                    r3[0], r3[1], r3[2], dot(c, s),
+                    );
+        */
+    }
+
 };
 
 static Mat4 lookAt(const Vec3& pos, const Vec3& look_point, const Vec3& up_vec)
