@@ -210,7 +210,7 @@ struct Mat
         float f = fabs(sin(ang)) < EPS ? 0 : 1/tan(ang);
         if(abs(aspect_ratio) > EPS)
         {
-            r(0, 0) = f/aspect_ratio;
+            r(0, 0) = f * aspect_ratio;
         }
 
         r(1, 1) = f;
@@ -219,8 +219,9 @@ struct Mat
         {
             // TODO: figure out why the matrix4.h version is positive
             //       and figure out how the glm version works
+            //r(2, 2) = -(z_far + z_near)/(z_far - z_near);
             r(2, 2) = -(z_far + z_near)/(z_far - z_near);
-            r(2, 3) = (float)(-2.0*z_far*z_near/(z_far-z_near));
+            r(2, 3) = (float)(-2.0f*z_far*z_near/(z_far-z_near));
         }
 
         r(3, 2) = -1.0;

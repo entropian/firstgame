@@ -5,6 +5,10 @@
 #include "vec.h"
 #include "constants.h"
 #include "shaders/shader.h"
+#include <float.h>
+
+const float K_EPSILON = 0.0001f;
+const float TMAX = FLT_MAX;
 
 class Box
 {
@@ -189,6 +193,86 @@ public:
         glUseProgram(shader_program);
         glDrawArrays(GL_TRIANGLES, 0, num_vertices);
         glBindVertexArray(0);
+    }
+
+    float rayIntersect(const Vec3& origin, const Vec3& direction)
+    {
+        float tx_min, ty_min, tz_min;
+        float tx_max, ty_max, tz_max;
+
+        float a = 1.0f/direction[0];
+        if(a >= 0)
+        {
+            tx_min = (min[0] - origin[0]) * a;
+            tx_max = (max[0] - origin[0]) * a;
+        }else
+        {
+            tx_min = (max[0] - origin[0]) * a;
+            tx_max = (min[0] - origin[0]) * a;        
+        }
+
+        float b = 1.0f/direction[1];
+        if(b >= 0)
+        {
+            ty_min = (min[1] - origin[1]) * b;
+            ty_max = (max[1] - origin[1]) * b;        
+        }else
+        {
+            ty_min = (max[1] - origin[1]) * b;
+            ty_max = (min[1] - origin[1]) * b;        
+        }
+
+        float c = 1.0f/direction[2];
+        if(c >= 0)
+        {
+            tz_min = (min[2] - origin[2]) * c;
+            tz_max = (max[2] - origin[2]) * c;
+        }else
+        {
+            tz_min = (max[2] - origin[2]) * c;
+            tz_max = (min[2] - origin[2]) * c;
+        }
+    
+        float t0, t1;
+        if(tx_min > ty_min)
+        {
+            t0 = tx_min;
+        }else
+        {
+            t0 = ty_min;
+        }
+
+        if(tz_min > t0)
+        {
+            t0 = tz_min;
+        }
+
+        if(tx_max < ty_max)
+        {
+            t1 = tx_max;
+        }else
+        {
+            t1 = ty_max;
+        }
+
+        if(tz_max < t1)
+        {
+            t1 = tz_max;
+        }
+
+        if(t0 < t1 && t1 > K_EPSILON)
+        {
+            if(t0 > K_EPSILON)
+            {
+                return t0;
+            }else
+            {
+                return t1;
+            }
+        }else
+        {
+            return TMAX;
+        }
     }
     
 private:

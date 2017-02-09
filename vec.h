@@ -107,6 +107,16 @@ struct Vec
 		}
 	}
 
+    template <int m>
+    T& operator =(const Vec<T, m>& v)
+    {
+        int min = std::min(m, n);
+        for(int i = 0; i < min; ++i)
+        {
+            data[i] = v[i];
+        }
+    }
+
 	T& operator [](const int i)
 	{
 		return data[i];
