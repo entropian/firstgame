@@ -35,6 +35,7 @@ struct Mat
 		}
 	}
 
+
 	T& operator ()(const int row, const int col)
 	{
 		return data[row][col];
@@ -130,7 +131,7 @@ struct Mat
 		return Mat(*this) /= t;
 	}
 
-	Vec<T, cols> operator *(const Vec<T, cols>& v)
+	Vec<T, cols> operator *(const Vec<T, cols>& v) const
 	{
 		Vec<T, cols> r;
 		for (int i = 0; i < rows; ++i)

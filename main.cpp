@@ -10,6 +10,7 @@
 #include "mat.h"
 #include "ship.h"
 #include "box.h"
+#include "camera.h"
 
 bool EXIT = false;
 
@@ -18,6 +19,7 @@ double g_click_ypos = 0.0;
 double g_cursor_xpos = 0.0;
 double g_cursor_ypos = 0.0;
 bool g_left_clicking = false;
+Camera *g_camera_ptr = NULL;
 
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
@@ -25,6 +27,26 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
     {
         switch(key)
         {
+        case GLFW_KEY_W:
+        {
+            Vec3 camera_movement(0.0f, 0.0f, 0.1f);
+            g_camera_ptr->move(camera_movement); 
+        } break;
+        case GLFW_KEY_A:
+        {
+            Vec3 camera_movement(-0.1f, 0.0f, 0.0f);
+            g_camera_ptr->move(camera_movement);
+        } break;
+        case GLFW_KEY_S:
+        {
+            Vec3 camera_movement(0.0f, 0.0f, -0.1f);
+            g_camera_ptr->move(camera_movement); 
+        } break;
+        case GLFW_KEY_D:
+        {
+            Vec3 camera_movement(0.1f, 0.0f, 0.0f);
+            g_camera_ptr->move(camera_movement);
+        } break;            
         case GLFW_KEY_Q:
             EXIT = true;
             break;
@@ -79,10 +101,44 @@ GLFWwindow* initWindow(unsigned int width, unsigned int height)
 	return window;
 }
 
+void calcRay(Vec3& ray_origin, Vec3& ray_dir, const unsigned int click_xpos,
+             const unsigned int click_ypos, const unsigned int window_width, const unsigned int window_height,
+             const float fov, const float aspect_ratio, const Mat4& camera_transform)
+{
+    // Assume focal length = 1
+    std::cout << std::endl;
+    float boost_y = 1.0f / cos(fov*0.5f*(float)PI/180.0f);
+    float half_frame_height = sin(fov*0.5f*(float)PI/180.0f) * boost_y;
+    float half_frame_width = half_frame_height * aspect_ratio;
+    std::cout << "half_frame_width " << half_frame_width << std::endl;
+    std::cout << "half_frame_height " << half_frame_height << std::endl;
+
+    float click_x = (float)(click_xpos - window_width/2.0f) / (window_width / 2.0f);
+    float click_y = (float)((window_height - click_ypos) - window_height/2.0f) / (window_height / 2.0f);
+
+    Vec3 dir;
+    dir[0] = click_x * half_frame_width;
+    dir[1] = click_y * half_frame_height;
+    dir[2] = -1.0f;
+    printf("dir unnormalized %f, %f, %f\n", dir[0], dir[1], dir[2]);
+    dir = dir.normalize();
+    Vec3 origin;
+
+    // Transform ray
+    dir = camera_transform * Vec4(dir, 0.0f);
+    origin = camera_transform * Vec4(origin, 1.0f);
+
+    printf("origin: %f, %f, %f\n", origin[0], origin[1], origin[2]);
+    printf("dir: %f, %f, %f\n", dir[0], dir[1], dir[2]);
+    std::cout << "click_x " << click_x << " click_y " << click_y << std::endl;
+    ray_origin = origin;
+    ray_dir = dir;
+}
+
 int main()
 {
-    int window_width = 720;
-    int window_height = 720;
+    unsigned int window_width = 720;
+    unsigned int window_height = 720;
 	GLFWwindow *window = initWindow(window_width, window_height);
     glfwSetKeyCallback(window, keyCallback);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
@@ -114,15 +170,10 @@ int main()
     Vec3 dir_light_2(normalize(Vec3(1.0f, 1.0f, 1.0f)));
         
     // Transforms
-    Vec3 camera_pos(0.0f, 0.0f, 0.0f);
-    //Vec3 camera_dir = MINUS_Z;
-    Vec3 camera_dir = PLUS_Z;
-    Mat4 camera_transform = Mat4::makeTranslation(camera_pos) * Mat4::makeYRotation(180.0f);
-    // NOTE: it looks like that image plane of the camera is at the origin instead of at z = -1
-    //       To compensate, I subtract the unit camera vector from the camera position to move it back
-    //       by 1
-    Mat4 view_transform = Mat4::makeTranslation(camera_pos) *
-        Mat4::makeYRotation(180.0f) * Mat4::makeTranslation(-camera_dir);
+    Camera camera(MINUS_Z, UP, ORIGIN);
+    g_camera_ptr = &camera;
+    Mat4 camera_transform = camera.camera_transform;
+    Mat4 view_transform = camera.view_transform;
     float aspect_ratio  = (float)window_width / (float)window_height;
     float fov = 90.0f;
     Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, -0.001f, -20.0f));
@@ -145,8 +196,8 @@ int main()
     Mat4 transform = view_transform * model;
     Mat4 normal_transform = (model.inverse()).transpose();
     
-    Vec3 min(-0.5f, -0.5f, 2.0f);
-    Vec3 max(0.5f, 0.5f, 3.0f);
+    Vec3 min(-0.5f, -0.5f, -3.0f);
+    Vec3 max(0.5f, 0.5f, -1.0f);
     Vec3 center = (max - min) * 0.5 + min;
     Box box(min, max);    
     box.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
@@ -170,45 +221,20 @@ int main()
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        camera_transform = camera.camera_transform;
+        view_transform = camera.view_transform;
+
         if(!left_clicking && g_left_clicking)
         {
-            // TODO: calc ray
-            // Assume focal length = 1
-            std::cout << std::endl;
-            //float half_frame_width = sinf((fov * 0.5f) / 180 * PI);
-            //float half_frame_height = half_frame_width / aspect_ratio;
-            // NOTE: HALF FRAME WIDTH ISN"T 1?!?!?!?!?!?!
-            float boost_y = 1.0f / cos(fov*0.5f*(float)PI/180.0f);
-            float half_frame_height = sin(fov*0.5f*(float)PI/180.0f) * boost_y;
-            float half_frame_width = half_frame_height * aspect_ratio;
-            std::cout << "half_frame_width " << half_frame_width << std::endl;
-            std::cout << "half_frame_height " << half_frame_height << std::endl;
+            Vec3 ray_dir, ray_origin;
+            calcRay(ray_origin, ray_dir, g_click_xpos, g_click_ypos, window_width, window_height, fov, aspect_ratio,
+                    camera_transform);
 
-            float click_x = (float)(g_click_xpos - window_width/2.0f) / (window_width / 2.0f);
-            float click_y = (float)((window_height - g_click_ypos) - window_height/2.0f) / (window_height / 2.0f);
-
-            Vec3 ray_dir;
-            ray_dir[0] = click_x * half_frame_width;
-            ray_dir[1] = click_y * half_frame_height;
-            ray_dir[2] = -1.0f;
-            printf("ray_dir unnormalized %f, %f, %f\n", ray_dir[0], ray_dir[1], ray_dir[2]);
-            ray_dir = ray_dir.normalize();
-            Vec3 ray_origin;
-
-            // Transform ray
-            ray_dir = camera_transform * Vec4(ray_dir, 0.0f);
-            ray_origin = camera_transform * Vec4(ray_origin, 1.0f);
-
-            printf("origin: %f, %f, %f\n", ray_origin[0], ray_origin[1], ray_origin[2]);
-            printf("dir: %f, %f, %f\n", ray_dir[0], ray_dir[1], ray_dir[2]);
-            
-
+            // Intersection
             float t = box.rayIntersect(ray_origin, ray_dir);
             std::cout << "t " << t << std::endl;
             Vec3 hit_point = ray_origin + ray_dir * t;
             printf("hit_point: %f, %f, %f\n", hit_point[0], hit_point[1], hit_point[2]); 
-
-            std::cout << "click_x " << click_x << " click_y " << click_y << std::endl;
             std::cout << std::endl;
             left_clicking = true;
         }else if(left_clicking && !g_left_clicking)
@@ -217,6 +243,7 @@ int main()
         }
 
         //ship.draw();
+        box.setTransform(view_transform);
         box.draw();        
 
 		glfwSwapBuffers(window);
