@@ -20,6 +20,7 @@ double g_cursor_xpos = 0.0;
 double g_cursor_ypos = 0.0;
 bool g_left_clicking = false;
 Camera *g_camera_ptr = NULL;
+Box *g_box_ptr = NULL;
 
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
@@ -46,10 +47,11 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             Vec3 camera_movement(0.1f, 0.0f, 0.0f);
             g_camera_ptr->move(camera_movement);
-        } break;            
+        } break;
         case GLFW_KEY_Q:
+        {
             EXIT = true;
-            break;
+        } break;
         }
     }
 }
@@ -201,6 +203,8 @@ int main()
     Vec3 center = (max - min) * 0.5 + min;
     Box box(min, max);    
     box.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
+    // Temp
+    g_box_ptr = &box;
 
     Vec3 top_left_back(min[0], max[1], max[2]);
     printf("top_left_back: %f, %f, %f\n", top_left_back[0], top_left_back[1], top_left_back[2]);
@@ -212,8 +216,6 @@ int main()
     std::vector<Box> boxes;
     boxes.push_back(box);
 
-    // TODO: test in positive z
-    
     bool left_clicking = false;
     glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window) && !EXIT)
@@ -243,7 +245,7 @@ int main()
         }
 
         //ship.draw();
-        box.setTransform(view_transform);
+        box.setViewTransform(view_transform);
         box.draw();        
 
 		glfwSwapBuffers(window);
