@@ -134,12 +134,14 @@ Ship::~Ship()
     glDeleteVertexArrays(1, &vao);
 }
 
-void Ship::setUniforms(const Mat4& transform, const Mat4& normal_transform,
+void Ship::setUniforms(const Mat4& model_transform, const Mat4& view_transform, const Mat4& normal_transform,
                      const Mat4 proj_transform, const Vec3& dir_light_1, const Vec3& dir_light_2)
 {
     glUseProgram(shader_program);
-    GLint model_view_handle = glGetUniformLocation(shader_program, "model_view_mat");
-    glUniformMatrix4fv(model_view_handle, 1, GL_TRUE, &(transform.data[0][0]));
+    GLint model_handle = glGetUniformLocation(shader_program, "model_mat");
+    glUniformMatrix4fv(model_handle, 1, GL_TRUE, &(model_transform.data[0][0]));
+    GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
+    glUniformMatrix4fv(view_handle, 1, GL_TRUE, &(view_transform.data[0][0]));
     GLint proj_handle = glGetUniformLocation(shader_program, "proj_mat");
     glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_transform.data[0][0]));
     GLint normal_transform_handle = glGetUniformLocation(shader_program, "normal_mat");
@@ -153,6 +155,14 @@ void Ship::setUniforms(const Mat4& transform, const Mat4& normal_transform,
     glUniform3fv(dir_light_1_handle, 1, (const GLfloat*)(dir_light_1.data));
     GLint dir_light_2_handle = glGetUniformLocation(shader_program, "dir_light_2");
     glUniform3fv(dir_light_2_handle, 1, (const GLfloat*)(dir_light_2.data));
+    glUseProgram(0);
+}
+
+void Ship::setViewTransform(const Mat4& view_transform)
+{
+    glUseProgram(shader_program);
+    GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
+    glUniformMatrix4fv(view_handle, 1, GL_TRUE, &(view_transform.data[0][0]));
     glUseProgram(0);
 }
 

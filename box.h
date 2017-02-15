@@ -117,7 +117,7 @@ public:
         {
             max[2] += amount;
         } break;
-        case 5:
+        case 5: // Negative z
         {
             min[2] -= amount;
         } break;

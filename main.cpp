@@ -30,23 +30,27 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
         case GLFW_KEY_W:
         {
-            Vec3 camera_movement(0.0f, 0.0f, 0.1f);
-            g_camera_ptr->move(camera_movement); 
+            g_camera_ptr->move(4, 0.1f); 
         } break;
         case GLFW_KEY_A:
         {
-            Vec3 camera_movement(-0.1f, 0.0f, 0.0f);
-            g_camera_ptr->move(camera_movement);
+            g_camera_ptr->move(1, 0.1f);
         } break;
         case GLFW_KEY_S:
         {
-            Vec3 camera_movement(0.0f, 0.0f, -0.1f);
-            g_camera_ptr->move(camera_movement); 
+            g_camera_ptr->move(5, 0.1f); 
         } break;
         case GLFW_KEY_D:
         {
-            Vec3 camera_movement(0.1f, 0.0f, 0.0f);
-            g_camera_ptr->move(camera_movement);
+            g_camera_ptr->move(0, 0.1f);
+        } break;
+        case GLFW_KEY_T:
+        {
+            g_camera_ptr->turnSideways(5.0f);
+        } break;
+        case GLFW_KEY_R:
+        {
+            g_camera_ptr->turnSideways(-5.0f);
         } break;
         case GLFW_KEY_Q:
         {
@@ -176,42 +180,33 @@ int main()
     g_camera_ptr = &camera;
     Mat4 camera_transform = camera.camera_transform;
     Mat4 view_transform = camera.view_transform;
+    //Mat4 view_transform;
     float aspect_ratio  = (float)window_width / (float)window_height;
     float fov = 90.0f;
-    Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, -0.001f, -20.0f));
+    Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));
 
-    /*
     // Ship transforms
+    /*
     Mat4 scale = Mat4::makeScale(Vec3(0.2f, 0.2f, 0.2f));
     Mat4 rotation = Mat4::makeYRotation(180.0f) * Mat4::makeXRotation(90.0f);
-    Mat4 translation = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 0.0f));
+    Mat4 translation = Mat4::makeTranslation(Vec3(0.0f, 0.0f, -2.0f));
     Mat4 model = translation * rotation * scale;
-    Mat4 transform = view_transform * model;
-    Mat4 normal_transform = (model.inverse()).transpose();
+    Mat4 ship_normal_transform = ((view_transform * model.inverse())).transpose();
 
     Ship ship;
-    ship.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
+    ship.setUniforms(model, view_transform, ship_normal_transform, proj_transform, dir_light_1, dir_light_2);
     */
 
     // Box transforms
-    Mat4 model;
-    Mat4 transform = view_transform * model;
-    Mat4 normal_transform = (model.inverse()).transpose();
+    Mat4 transform = view_transform;
+    Mat4 normal_transform = (transform.inverse()).transpose();
     
-    Vec3 min(-0.5f, -0.5f, -3.0f);
-    Vec3 max(0.5f, 0.5f, -1.0f);
+    Vec3 min(-0.5f, -0.5f, -4.0f);
+    Vec3 max(0.5f, 0.5f, -2.0f);
     Vec3 center = (max - min) * 0.5 + min;
     Box box(min, max);    
     box.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
-    // Temp
-    g_box_ptr = &box;
 
-    Vec3 top_left_back(min[0], max[1], max[2]);
-    printf("top_left_back: %f, %f, %f\n", top_left_back[0], top_left_back[1], top_left_back[2]);
-
-    Vec3 ray_origin(0.0f, 0.0f, 0.0f);
-    Vec3 ray_dir = normalize(top_left_back - ray_origin);
-    printf("ray_dir: %f, %f, %f\n", ray_dir[0], ray_dir[1], ray_dir[2]);
 
     std::vector<Box> boxes;
     boxes.push_back(box);
@@ -244,6 +239,7 @@ int main()
             left_clicking = false;
         }
 
+        //ship.setViewTransform(view_transform);
         //ship.draw();
         box.setViewTransform(view_transform);
         box.draw();        
