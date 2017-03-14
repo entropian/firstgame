@@ -4,6 +4,7 @@
 #include <cassert>
 #include <algorithm>
 #include <initializer_list>
+#include <iostream>
 
 // TODO
 // Union for getting .x .y and .z
@@ -228,6 +229,15 @@ struct Vec
 		assert(dot(*this, *this) > EPS2);
 		return sqrt(dot(*this, *this));
 	}
+
+    void print()
+    {
+        for(int i = 0; i < n; i++)
+        {
+            std::cout << data[i] << " ";
+        }
+        std::cout << std::endl;
+    }
 };
 
 typedef Vec<float, 2> Vec2;
@@ -258,3 +268,4 @@ inline Vec<T, n> normalize(const Vec<T, n>& v)
 {
 	return Vec<T, n>(v).normalize();
 }
+

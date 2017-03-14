@@ -30,7 +30,7 @@ public:
     void move(const unsigned int dir, const float distance)
     {
         Vec3 move_dir;
-        switch( dir)
+        switch(dir)
         {
         case 0: // Positive x
         {

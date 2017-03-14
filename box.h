@@ -13,6 +13,11 @@ const float TMAX = FLT_MAX;
 class Box
 {
 public:
+    Box()
+        :min(Vec3(0.0f, 0.0f, 0.0f)), max(Vec3(0.0f, 0.0f, 0.0f))
+    {
+    }
+    
     Box(const Vec3& a, const Vec3& b)
     {
         // TODO: figure out the z orientation of boxes
@@ -93,33 +98,65 @@ public:
         glUseProgram(0);
     }
 
-    void changeLength(const unsigned int side_num, const float amount)
+    void changeLength(const int side_num, const float amount)
     {
+        // TODO: clamp to minimum lengths
+        const float min_len = 0.1f;
         switch(side_num)
         {
         case 0: // Positive x
         {
             max[0] += amount;
+            float diff = max[0] - min[0];
+            if(diff < min_len)
+            {
+                max[0] += min_len - diff;
+            }
         } break;
         case 1: // Negative x
         {
             min[0] -= amount;
+            float diff = max[0] - min[0];
+            if(diff < min_len)
+            {
+                min[0] -= min_len - diff;
+            }
         } break;
         case 2: // Positive y
         {
             max[1] += amount;
+            float diff = max[1] - min[1];
+            if(diff < min_len)
+            {
+                max[1] += min_len - diff;
+            }
         } break;
         case 3: // Negative y
         {
             min[1] -= amount;
+            float diff = max[1] - min[1];
+            if(diff < min_len)
+            {
+                min[1] -= min_len - diff;
+            }
         } break;
         case 4: // Positive z
         {
             max[2] += amount;
+            float diff = max[2] - min[2];
+            if(diff < min_len)
+            {
+                max[2] += min_len - diff;
+            }
         } break;
         case 5: // Negative z
         {
             min[2] -= amount;
+            float diff = max[2] - min[2];
+            if(diff < min_len)
+            {
+                min[2] -= min_len - diff;
+            }
         } break;
         }
 
@@ -137,7 +174,7 @@ public:
         glBindVertexArray(0);
     }
 
-    float rayIntersect(const Vec3& origin, const Vec3& direction)
+    float rayIntersect(int& face, const Vec3& origin, const Vec3& direction)
     {
         float tx_min, ty_min, tz_min;
         float tx_max, ty_max, tz_max;
@@ -176,45 +213,86 @@ public:
         }
     
         float t0, t1;
+        int face_in = -1, face_out = -1;
         if(tx_min > ty_min)
         {
             t0 = tx_min;
+            face_in = (a >= 0.0f) ? 1 : 0;
         }else
         {
             t0 = ty_min;
+            face_in = (b >= 0.0f) ? 3 : 2;
         }
 
         if(tz_min > t0)
         {
             t0 = tz_min;
+            face_in = (c >= 0.0f) ? 5 : 4;
         }
 
         if(tx_max < ty_max)
         {
             t1 = tx_max;
+            face_out = (a >= 0.0f) ? 0 : 1;
         }else
         {
             t1 = ty_max;
+            face_out = (b >= 0.0f) ? 2 : 3;
         }
 
         if(tz_max < t1)
         {
             t1 = tz_max;
+            face_out = (c >= 0.0f ) ? 4 : 5;
         }
 
         if(t0 < t1 && t1 > K_EPSILON)
         {
             if(t0 > K_EPSILON)
             {
+                face = face_in;
                 return t0;
             }else
             {
+                face = face_out;
                 return t1;
             }
         }else
         {
             return TMAX;
         }
+    }
+
+    Vec3 getSideNormal(const int side_num)
+    {
+        switch(side_num)
+        {
+        case 0: // Positive x
+        {
+            return RIGHT;
+        } break;
+        case 1: // Negative x
+        {
+            return LEFT;
+        } break;
+        case 2: // Positive y
+        {
+            return UP;
+        } break;
+        case 3: // Negative y
+        {
+            return DOWN;
+        } break;
+        case 4: // Positive z
+        {
+            return PLUS_Z;
+        } break;
+        case 5: // Negative z
+        {
+            return MINUS_Z;
+        } break;
+        }
+        return Vec3();
     }
     
 private:

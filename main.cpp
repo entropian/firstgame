@@ -14,13 +14,21 @@
 
 bool EXIT = false;
 
+bool g_left_clicking = false;
 double g_click_xpos = 0.0;
 double g_click_ypos = 0.0;
 double g_cursor_xpos = 0.0;
 double g_cursor_ypos = 0.0;
-bool g_left_clicking = false;
+float g_aspect_ratio = 0.0f;
+unsigned int g_window_width = 0;
+unsigned int g_window_height = 0;
+
+
+
 Camera *g_camera_ptr = NULL;
 Box *g_box_ptr = NULL;
+Box g_box_unmodded;
+int g_box_side = -1;
 
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
@@ -52,6 +60,20 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             g_camera_ptr->turnSideways(-5.0f);
         } break;
+        case GLFW_KEY_G:
+        {
+            if(g_box_ptr && g_box_side != -1)
+            {
+                g_box_ptr->changeLength(g_box_side, 0.1f);
+            }
+        } break;
+        case GLFW_KEY_H:
+        {
+            if(g_box_ptr && g_box_side != -1)
+            {
+                g_box_ptr->changeLength(g_box_side, -0.1f);
+            }
+        } break;        
         case GLFW_KEY_Q:
         {
             EXIT = true;
@@ -73,6 +95,31 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
         {
             g_left_clicking = false;
         }
+    }
+}
+
+void cursorPosCallback(GLFWwindow *window, double x, double y)
+{
+    if(g_left_clicking && g_box_ptr)
+    {
+        // To get a vector in world space
+        // get window coords
+        // get difference
+        // divide by window physical dimension
+        // multiply by camera x and y basis
+        // dot the vector with the box's vector
+        // multiply the dot product with a certain constant
+        // change the box's length by that amount
+        double x_diff = x - g_click_xpos;
+        double y_diff = -(y - g_click_ypos);
+        float x_norm = x_diff / g_window_width * g_aspect_ratio;
+        float y_norm = y_diff / g_window_height;
+        Vec3 cursor_vec = Vec3(g_camera_ptr->orientation * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+        Vec3 box_normal = g_box_ptr->getSideNormal(g_box_side);
+        // TODO: change 0.1f to something dependent on box distance from camera
+        float amount = dot(cursor_vec, box_normal) * 1.0f;
+        *g_box_ptr = g_box_unmodded;
+        g_box_ptr->changeLength(g_box_side, amount);
     }
 }
 
@@ -145,9 +192,12 @@ int main()
 {
     unsigned int window_width = 720;
     unsigned int window_height = 720;
+    g_window_width = window_width;
+    g_window_height = window_height;
 	GLFWwindow *window = initWindow(window_width, window_height);
     glfwSetKeyCallback(window, keyCallback);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    glfwSetCursorPosCallback(window, cursorPosCallback);
 	/*
 		TODO:
 		glfwSetCursorPosCallback(window, cursorPosCallback);
@@ -182,6 +232,7 @@ int main()
     Mat4 view_transform = camera.view_transform;
     //Mat4 view_transform;
     float aspect_ratio  = (float)window_width / (float)window_height;
+    g_aspect_ratio = aspect_ratio;
     float fov = 90.0f;
     Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));
 
@@ -207,7 +258,6 @@ int main()
     Box box(min, max);    
     box.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
 
-
     std::vector<Box> boxes;
     boxes.push_back(box);
 
@@ -228,7 +278,17 @@ int main()
                     camera_transform);
 
             // Intersection
-            float t = box.rayIntersect(ray_origin, ray_dir);
+            // TODO: multiple boxes
+            float t = box.rayIntersect(g_box_side, ray_origin, ray_dir);
+            if(t < TMAX)
+            {
+                g_box_ptr = &box;
+                g_box_unmodded = box;
+            }else
+            {
+                g_box_ptr = nullptr;
+                g_box_unmodded = Box();
+            }
             std::cout << "t " << t << std::endl;
             Vec3 hit_point = ray_origin + ray_dir * t;
             printf("hit_point: %f, %f, %f\n", hit_point[0], hit_point[1], hit_point[2]); 
