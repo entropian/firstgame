@@ -91,7 +91,7 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
             g_left_clicking = true;
             glfwGetCursorPos(window, &g_click_xpos, &g_click_ypos);
             std::cout << "xpos: " << g_click_xpos << " ypos: " << g_click_ypos << std::endl;
-        }else
+        }else if(action == GLFW_RELEASE)
         {
             g_left_clicking = false;
         }
@@ -100,27 +100,8 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 
 void cursorPosCallback(GLFWwindow *window, double x, double y)
 {
-    if(g_left_clicking && g_box_ptr)
-    {
-        // To get a vector in world space
-        // get window coords
-        // get difference
-        // divide by window physical dimension
-        // multiply by camera x and y basis
-        // dot the vector with the box's vector
-        // multiply the dot product with a certain constant
-        // change the box's length by that amount
-        double x_diff = x - g_click_xpos;
-        double y_diff = -(y - g_click_ypos);
-        float x_norm = x_diff / g_window_width * g_aspect_ratio;
-        float y_norm = y_diff / g_window_height;
-        Vec3 cursor_vec = Vec3(g_camera_ptr->orientation * Vec4(x_norm, y_norm, 0.0f, 0.0f));
-        Vec3 box_normal = g_box_ptr->getSideNormal(g_box_side);
-        // TODO: change 0.1f to something dependent on box distance from camera
-        float amount = dot(cursor_vec, box_normal) * 1.0f;
-        *g_box_ptr = g_box_unmodded;
-        g_box_ptr->changeLength(g_box_side, amount);
-    }
+    g_cursor_xpos = x;
+    g_cursor_ypos = y;
 }
 
 GLFWwindow* initWindow(unsigned int width, unsigned int height)
@@ -294,8 +275,30 @@ int main()
             printf("hit_point: %f, %f, %f\n", hit_point[0], hit_point[1], hit_point[2]); 
             std::cout << std::endl;
             left_clicking = true;
+        }else if(left_clicking && g_left_clicking)
+        {
+            // To get a vector in world space
+            // get window coords
+            // get difference
+            // divide by window physical dimension
+            // multiply by camera x and y basis
+            // dot the vector with the box's vector
+            // multiply the dot product with a certain constant
+            // change the box's length by that amount
+            double x_diff = g_cursor_xpos - g_click_xpos;
+            double y_diff = -(g_cursor_ypos - g_click_ypos);
+            float x_norm = x_diff / g_window_width * g_aspect_ratio;
+            float y_norm = y_diff / g_window_height;
+            Vec3 cursor_vec = Vec3(g_camera_ptr->orientation * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+            Vec3 box_normal = g_box_ptr->getSideNormal(g_box_side);
+            // TODO: change 0.1f to something dependent on box distance from camera
+            float amount = dot(cursor_vec, box_normal) * 1.0f;
+            *g_box_ptr = g_box_unmodded;
+            g_box_ptr->changeLength(g_box_side, amount);
         }else if(left_clicking && !g_left_clicking)
         {
+            g_box_ptr = nullptr;
+            g_box_unmodded = Box();
             left_clicking = false;
         }
 
