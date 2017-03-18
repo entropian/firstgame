@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mat.h"
+#include "imageplane.h"
 
 class Camera
 {
@@ -9,7 +10,8 @@ public:
     {
     }
 
-    Camera(const Vec3& dir, const Vec3& up_vec, const Vec3& pos)
+    Camera(const Vec3& dir, const Vec3& up_vec, const Vec3& pos, const float fov, const float aspect_ratio)
+        :m_image_plane(fov, aspect_ratio)
     {
         translation = Mat4::makeTranslation(pos);
         // OpenGL flips the z axis around
@@ -78,6 +80,21 @@ public:
             orientation.inverse() * translation.inverse();
     }
 
+    Ray transformRay(const Ray& ray)
+    {
+        Ray ret;
+        ret.origin = camera_transform * Vec4(ray.origin, 1.0f);
+        ret.dir = camera_transform * Vec4(ray.dir, 0.0f);
+        return ret;
+    }
+
+    Ray calcRayFromScreenCoord(const float x, const float y)
+    {
+        Ray ray = m_image_plane.calcRay(x, y);
+        ray = this->transformRay(ray);
+        return ray;
+    }
+
     Mat4 view_transform;
     Mat4 camera_transform;
     Mat4 orientation;
@@ -98,5 +115,7 @@ private:
     Vec3 getZAxis()
     {
         return Vec3(orientation(0, 2), orientation(1, 2), orientation(2, 2));
-    }    
+    }
+
+    ImagePlane m_image_plane;
 };

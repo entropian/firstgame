@@ -6,6 +6,7 @@
 #include "constants.h"
 #include "shaders/shader.h"
 #include <float.h>
+#include "ray.h"
 
 const float K_EPSILON = 0.0001f;
 const float TMAX = FLT_MAX;
@@ -174,42 +175,42 @@ public:
         glBindVertexArray(0);
     }
 
-    float rayIntersect(int& face, const Vec3& origin, const Vec3& direction)
+    float rayIntersect(int& face, const Ray& ray)
     {
         float tx_min, ty_min, tz_min;
         float tx_max, ty_max, tz_max;
 
-        float a = 1.0f/direction[0];
+        float a = 1.0f/ray.dir[0];
         if(a >= 0)
         {
-            tx_min = (min[0] - origin[0]) * a;
-            tx_max = (max[0] - origin[0]) * a;
+            tx_min = (min[0] - ray.origin[0]) * a;
+            tx_max = (max[0] - ray.origin[0]) * a;
         }else
         {
-            tx_min = (max[0] - origin[0]) * a;
-            tx_max = (min[0] - origin[0]) * a;        
+            tx_min = (max[0] - ray.origin[0]) * a;
+            tx_max = (min[0] - ray.origin[0]) * a;        
         }
 
-        float b = 1.0f/direction[1];
+        float b = 1.0f/ray.dir[1];
         if(b >= 0)
         {
-            ty_min = (min[1] - origin[1]) * b;
-            ty_max = (max[1] - origin[1]) * b;        
+            ty_min = (min[1] - ray.origin[1]) * b;
+            ty_max = (max[1] - ray.origin[1]) * b;        
         }else
         {
-            ty_min = (max[1] - origin[1]) * b;
-            ty_max = (min[1] - origin[1]) * b;        
+            ty_min = (max[1] - ray.origin[1]) * b;
+            ty_max = (min[1] - ray.origin[1]) * b;        
         }
 
-        float c = 1.0f/direction[2];
+        float c = 1.0f/ray.dir[2];
         if(c >= 0)
         {
-            tz_min = (min[2] - origin[2]) * c;
-            tz_max = (max[2] - origin[2]) * c;
+            tz_min = (min[2] - ray.origin[2]) * c;
+            tz_max = (max[2] - ray.origin[2]) * c;
         }else
         {
-            tz_min = (max[2] - origin[2]) * c;
-            tz_max = (min[2] - origin[2]) * c;
+            tz_min = (max[2] - ray.origin[2]) * c;
+            tz_max = (min[2] - ray.origin[2]) * c;
         }
     
         float t0, t1;

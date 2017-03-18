@@ -1,3 +1,8 @@
+/*
+  TODO:
+  add a track class
+ */
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -104,6 +109,15 @@ void cursorPosCallback(GLFWwindow *window, double x, double y)
     g_cursor_ypos = y;
 }
 
+void getNormalizedWindowCoord(float& x, float& y, const unsigned int x_pos, const unsigned int y_pos,
+                              GLFWwindow *window)
+{
+    int window_width = 0, window_height = 0;
+    glfwGetWindowSize(window, &window_width, &window_height);
+    x = (float)(x_pos - window_width/2.0f) / (window_width / 2.0f);
+    y = (float)((window_height - y_pos) - window_height/2.0f) / (window_height / 2.0f);
+}
+
 GLFWwindow* initWindow(unsigned int width, unsigned int height)
 {
 	// Init GLFW
@@ -133,40 +147,6 @@ GLFWwindow* initWindow(unsigned int width, unsigned int height)
 		return NULL;
 	}
 	return window;
-}
-
-void calcRay(Vec3& ray_origin, Vec3& ray_dir, const unsigned int click_xpos,
-             const unsigned int click_ypos, const unsigned int window_width, const unsigned int window_height,
-             const float fov, const float aspect_ratio, const Mat4& camera_transform)
-{
-    // Assume focal length = 1
-    std::cout << std::endl;
-    float boost_y = 1.0f / cos(fov*0.5f*(float)PI/180.0f);
-    float half_frame_height = sin(fov*0.5f*(float)PI/180.0f) * boost_y;
-    float half_frame_width = half_frame_height * aspect_ratio;
-    std::cout << "half_frame_width " << half_frame_width << std::endl;
-    std::cout << "half_frame_height " << half_frame_height << std::endl;
-
-    float click_x = (float)(click_xpos - window_width/2.0f) / (window_width / 2.0f);
-    float click_y = (float)((window_height - click_ypos) - window_height/2.0f) / (window_height / 2.0f);
-
-    Vec3 dir;
-    dir[0] = click_x * half_frame_width;
-    dir[1] = click_y * half_frame_height;
-    dir[2] = -1.0f;
-    printf("dir unnormalized %f, %f, %f\n", dir[0], dir[1], dir[2]);
-    dir = dir.normalize();
-    Vec3 origin;
-
-    // Transform ray
-    dir = camera_transform * Vec4(dir, 0.0f);
-    origin = camera_transform * Vec4(origin, 1.0f);
-
-    printf("origin: %f, %f, %f\n", origin[0], origin[1], origin[2]);
-    printf("dir: %f, %f, %f\n", dir[0], dir[1], dir[2]);
-    std::cout << "click_x " << click_x << " click_y " << click_y << std::endl;
-    ray_origin = origin;
-    ray_dir = dir;
 }
 
 int main()
@@ -207,15 +187,17 @@ int main()
     Vec3 dir_light_2(normalize(Vec3(1.0f, 1.0f, 1.0f)));
         
     // Transforms
-    Camera camera(MINUS_Z, UP, ORIGIN);
+    float aspect_ratio  = (float)window_width / (float)window_height;
+    g_aspect_ratio = aspect_ratio;
+    float fov = 90.0f;
+    // TODO: where to put proj_transform?
+    Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));
+    Camera camera(MINUS_Z, UP, ORIGIN, fov, aspect_ratio);
     g_camera_ptr = &camera;
     Mat4 camera_transform = camera.camera_transform;
     Mat4 view_transform = camera.view_transform;
     //Mat4 view_transform;
-    float aspect_ratio  = (float)window_width / (float)window_height;
-    g_aspect_ratio = aspect_ratio;
-    float fov = 90.0f;
-    Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));
+
 
     // Ship transforms
     /*
@@ -254,13 +236,13 @@ int main()
 
         if(!left_clicking && g_left_clicking)
         {
-            Vec3 ray_dir, ray_origin;
-            calcRay(ray_origin, ray_dir, g_click_xpos, g_click_ypos, window_width, window_height, fov, aspect_ratio,
-                    camera_transform);
+            float click_x, click_y;
+            getNormalizedWindowCoord(click_x, click_y, g_click_xpos, g_click_ypos, window);
+            Ray ray = camera.calcRayFromScreenCoord(click_x, click_y);
 
             // Intersection
             // TODO: multiple boxes
-            float t = box.rayIntersect(g_box_side, ray_origin, ray_dir);
+            float t = box.rayIntersect(g_box_side, ray);
             if(t < TMAX)
             {
                 g_box_ptr = &box;
@@ -271,11 +253,11 @@ int main()
                 g_box_unmodded = Box();
             }
             std::cout << "t " << t << std::endl;
-            Vec3 hit_point = ray_origin + ray_dir * t;
+            Vec3 hit_point = ray.origin + ray.dir * t;
             printf("hit_point: %f, %f, %f\n", hit_point[0], hit_point[1], hit_point[2]); 
             std::cout << std::endl;
             left_clicking = true;
-        }else if(left_clicking && g_left_clicking)
+        }else if(left_clicking && g_left_clicking && g_box_ptr)
         {
             // To get a vector in world space
             // get window coords
