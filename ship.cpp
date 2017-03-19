@@ -19,6 +19,8 @@ Ship::Ship()
     int num_shapes, num_mat;
     loadOBJ(&obj_shapes, &obj_materials, &num_shapes, &num_mat, model_file_path.c_str());
 
+    bbox = BBox(Vec3(FLT_MAX, FLT_MAX, FLT_MAX), Vec3(-TMAX, -TMAX, -TMAX));
+
     OBJShape *ship_obj = &(obj_shapes[0]);
     std::vector<GLfloat> ship_vert_data;
     std::cout << "num_positions: " << ship_obj->num_positions << std::endl;
@@ -35,6 +37,8 @@ Ship::Ship()
         ship_vert_data.push_back(ship_obj->normals[i*3 + 2]);
         ship_vert_data.push_back(ship_obj->texcoords[i*2]);
         ship_vert_data.push_back(-ship_obj->texcoords[i*2 + 1]);
+        bbox.enlargeTo(Vec3(ship_obj->positions[i*3], ship_obj->positions[i*3 + 1],
+                           ship_obj->positions[i*3 + 2]));
     }
         
     glGenVertexArrays(1, &vao);
@@ -137,6 +141,8 @@ Ship::~Ship()
 void Ship::setUniforms(const Mat4& model_transform, const Mat4& view_transform, const Mat4& normal_transform,
                      const Mat4 proj_transform, const Vec3& dir_light_1, const Vec3& dir_light_2)
 {
+    bbox.transform(model_transform);
+    
     glUseProgram(shader_program);
     GLint model_handle = glGetUniformLocation(shader_program, "model_mat");
     glUniformMatrix4fv(model_handle, 1, GL_TRUE, &(model_transform.data[0][0]));

@@ -1,5 +1,6 @@
 #pragma once
 #include "vec.h"
+#include <float.h>
 
 const Vec3 LEFT(-1.0f, 0.0f, 0.0f);
 const Vec3 RIGHT(1.0f, 0.0f, 0.0f);
@@ -14,3 +15,4 @@ const float SECONDS_PER_FRAME = 1.0f / (float)FPS;
 
 const float K_EPSILON = 0.0001f;
 const float TMAX = FLT_MAX;
+const float HUGEVALUE = 1.0E10;

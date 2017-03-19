@@ -1,7 +1,8 @@
 /*
   TODO:
   add a track class
-  add aabb to ship class
+  add bbox to ship class
+  Figure out how to scale ship bbox accordingly
  */
 
 #include <GL/glew.h>

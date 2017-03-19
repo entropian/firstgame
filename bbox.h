@@ -1,8 +1,8 @@
 #pragma once
 #include <cassert>
-#include "vec.h"
 #include "constants.h"
 #include "ray.h"
+#include "mat.h"
 
 class BBox
 {
@@ -18,8 +18,44 @@ public:
         min = a;
         max = b;
     }
+
+    void enlargeTo(const Vec3& point)
+    {
+        for(int i = 0; i < 3; i++)
+        {
+            if(min[i] > point[i])
+            {
+                min[i] = point[i];
+            }
+            if(max[i] < point[i])
+            {
+                max[i] = point[i];
+            }
+        }
+    }
+
+    void transform(const Mat4& m)
+    {
+        Vec4 corners[8];
+        corners[0] = Vec4(min[0], min[1], min[2], 1.0f); // Back bottom left
+        corners[1] = Vec4(max[0], min[1], min[2], 1.0f); // Back bottom right
+        corners[2] = Vec4(min[0], max[1], min[2], 1.0f); // Back top left
+        corners[3] = Vec4(max[0], max[1], min[2], 1.0f); // Back top right
+        corners[0] = Vec4(min[0], min[1], max[2], 1.0f); // Front bottom left
+        corners[1] = Vec4(max[0], min[1], max[2], 1.0f); // Front bottom right
+        corners[2] = Vec4(min[0], max[1], max[2], 1.0f); // Front top left
+        corners[3] = Vec4(max[0], max[1], max[2], 1.0f); // Front top right
+
+        min = Vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+        max = Vec3(-HUGEVALUE, -HUGEVALUE, -HUGEVALUE);
+        for(int i = 0; i < 8; i++)
+        {
+            corners[i] = m * corners[i];
+            this->enlargeTo(Vec3(corners[i]));
+        }        
+    }
     
-    float rayIntersect(int& face, const Ray& ray)
+    float rayIntersect(int& face, const Ray& ray) const
     {
         float tx_min, ty_min, tz_min;
         float tx_max, ty_max, tz_max;

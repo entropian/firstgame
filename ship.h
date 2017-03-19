@@ -1,7 +1,7 @@
 #pragma once
 #include <GL/glew.h>
 #include "mat.h"
-
+#include "bbox.h"
 
 class Ship
 {
@@ -16,5 +16,5 @@ private:
     GLuint vao, vbo, ibo, shader_program;
     GLuint diffuse_handle, normal_handle;
     unsigned int num_indices;
-    
+    BBox bbox;
 };
