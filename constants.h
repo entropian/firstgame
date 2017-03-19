@@ -12,3 +12,5 @@ const Vec3 ORIGIN(0.0f, 0.0f, 0.0f);
 const unsigned int FPS = 60;
 const float SECONDS_PER_FRAME = 1.0f / (float)FPS;
 
+const float K_EPSILON = 0.0001f;
+const float TMAX = FLT_MAX;

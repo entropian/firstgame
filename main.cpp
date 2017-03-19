@@ -1,6 +1,7 @@
 /*
   TODO:
   add a track class
+  add aabb to ship class
  */
 
 #include <GL/glew.h>
@@ -18,6 +19,7 @@
 #include "ship.h"
 #include "box.h"
 #include "camera.h"
+#include "track.h"
 
 bool EXIT = false;
 
@@ -163,11 +165,7 @@ int main()
     glfwSetCursorPosCallback(window, cursorPosCallback);
 
     // Setup ImGui binding
-    ImGui_ImplGlfwGL3_Init(window, true);
-	/*
-		TODO:
-		glfwSetCursorPosCallback(window, cursorPosCallback);
-	*/
+    //ImGui_ImplGlfwGL3_Init(window, true);
 
 	/*
 		Input data:
@@ -234,6 +232,7 @@ int main()
 	while (!glfwWindowShouldClose(window) && !EXIT)
 	{
         glfwPollEvents();
+        /*
         ImGui_ImplGlfwGL3_NewFrame();
         {
             static float f = 0.0f;
@@ -244,6 +243,7 @@ int main()
             if (ImGui::Button("Another Window")) show_another_window ^= 1;
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         }
+        */
         
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -305,11 +305,11 @@ int main()
         box.setViewTransform(view_transform);
         box.draw();        
 
-        ImGui::Render();
+        //ImGui::Render();
 		glfwSwapBuffers(window);
 	}
 
-    ImGui_ImplGlfwGL3_Shutdown();
+    //ImGui_ImplGlfwGL3_Shutdown();
 	glfwTerminate();
 	return 0;
 }
