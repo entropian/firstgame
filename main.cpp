@@ -5,6 +5,8 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw_gl3.h"
 
 #include <iostream>
 #include <fstream>
@@ -159,6 +161,9 @@ int main()
     glfwSetKeyCallback(window, keyCallback);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetCursorPosCallback(window, cursorPosCallback);
+
+    // Setup ImGui binding
+    ImGui_ImplGlfwGL3_Init(window, true);
 	/*
 		TODO:
 		glfwSetCursorPosCallback(window, cursorPosCallback);
@@ -173,9 +178,6 @@ int main()
                ship texture
                cube map
 			shaders            
-
-		Questions:
-			Does uploading mesh to vbo means the mesh now also lives on the GPU?
 	*/
 
     GLint num_tex_units;
@@ -190,13 +192,11 @@ int main()
     float aspect_ratio  = (float)window_width / (float)window_height;
     g_aspect_ratio = aspect_ratio;
     float fov = 90.0f;
-    // TODO: where to put proj_transform?
+    // NOTE: where to put proj_transform?
     Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));
     Camera camera(MINUS_Z, UP, ORIGIN, fov, aspect_ratio);
     g_camera_ptr = &camera;
-    Mat4 camera_transform = camera.camera_transform;
-    Mat4 view_transform = camera.view_transform;
-    //Mat4 view_transform;
+    Mat4 view_transform = camera.getViewTransform();
 
 
     // Ship transforms
@@ -224,15 +224,29 @@ int main()
     std::vector<Box> boxes;
     boxes.push_back(box);
 
+    // IMGUI stuff
+    bool show_test_window = true;
+    bool show_another_window = false;
+    ImVec4 clear_color = ImColor(114, 144, 154);
+
     bool left_clicking = false;
     glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window) && !EXIT)
 	{
+        glfwPollEvents();
+        ImGui_ImplGlfwGL3_NewFrame();
+        {
+            static float f = 0.0f;
+            ImGui::Text("Hello, world!");
+            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+            ImGui::ColorEdit3("clear color", (float*)&clear_color);
+            if (ImGui::Button("Test Window")) show_test_window ^= 1;
+            if (ImGui::Button("Another Window")) show_another_window ^= 1;
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        }
+        
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        camera_transform = camera.camera_transform;
-        view_transform = camera.view_transform;
 
         if(!left_clicking && g_left_clicking)
         {
@@ -271,7 +285,7 @@ int main()
             double y_diff = -(g_cursor_ypos - g_click_ypos);
             float x_norm = x_diff / g_window_width * g_aspect_ratio;
             float y_norm = y_diff / g_window_height;
-            Vec3 cursor_vec = Vec3(g_camera_ptr->orientation * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+            Vec3 cursor_vec = Vec3(g_camera_ptr->getOrientation() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
             Vec3 box_normal = g_box_ptr->getSideNormal(g_box_side);
             // TODO: change 0.1f to something dependent on box distance from camera
             float amount = dot(cursor_vec, box_normal) * 1.0f;
@@ -283,15 +297,19 @@ int main()
             g_box_unmodded = Box();
             left_clicking = false;
         }
-
+        
+        // Update view transform in shaders        
+        view_transform = camera.getViewTransform();
         //ship.setViewTransform(view_transform);
         //ship.draw();
         box.setViewTransform(view_transform);
         box.draw();        
 
+        ImGui::Render();
 		glfwSwapBuffers(window);
-		glfwPollEvents();
 	}
+
+    ImGui_ImplGlfwGL3_Shutdown();
 	glfwTerminate();
 	return 0;
 }

@@ -9,5 +9,5 @@ all:
 		$(CC) -g  craytracer main.cpp -lGLEW -lglfw3 -framework Cocoa -framework OpenGL -framework IOKit -framework CoreVideo
 else
 all:
-		$(CC) $(LFLAGS) $(CFLAGS )-g -o firstgame main.cpp ship.cpp
+		$(CC) $(LFLAGS) $(CFLAGS )-g -o firstgame main.cpp ship.cpp imgui/imgui_impl_glfw_gl3.cpp imgui/imgui.cpp imgui/imgui_draw.cpp
 endif

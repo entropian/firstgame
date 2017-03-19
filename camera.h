@@ -95,11 +95,25 @@ public:
         return ray;
     }
 
-    Mat4 view_transform;
-    Mat4 camera_transform;
-    Mat4 orientation;
-    Mat4 translation;
-    Vec3 scale;
+    Mat4 getViewTransform()
+    {
+        return view_transform;
+    }
+    
+    Mat4 getCameraTransform()
+    {
+        return camera_transform;
+    }
+
+    Mat4 getOrientation()
+    {
+        return orientation;
+    }
+
+    Mat4 getTranslation()
+    {
+        return translation;
+    }
 
 private:
     Vec3 getXAxis()
@@ -117,5 +131,10 @@ private:
         return Vec3(orientation(0, 2), orientation(1, 2), orientation(2, 2));
     }
 
+    Mat4 view_transform;
+    Mat4 camera_transform;
+    Mat4 orientation;
+    Mat4 translation;
+    Vec3 scale;
     ImagePlane m_image_plane;
 };
