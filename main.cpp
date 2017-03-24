@@ -1,8 +1,10 @@
 /*
   TODO:
-  add a track class
-  add bbox to ship class
-  Figure out how to scale ship bbox accordingly
+  make the main game loop timestep based
+  make ship velocity work with timestep
+  move ship scale into class itself
+  figure out what sides the bbox collided on
+  add some kind of grid for track editing
  */
 
 #include <GL/glew.h>
@@ -21,6 +23,7 @@
 #include "box.h"
 #include "camera.h"
 #include "track.h"
+#include "clock.h"
 
 bool EXIT = false;
 
@@ -33,12 +36,12 @@ float g_aspect_ratio = 0.0f;
 unsigned int g_window_width = 0;
 unsigned int g_window_height = 0;
 
-
-
 Camera *g_camera_ptr = NULL;
 Box *g_box_ptr = NULL;
 Box g_box_unmodded;
 int g_box_side = -1;
+
+float ship_length = 0.0f;
 
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
@@ -199,16 +202,16 @@ int main()
 
 
     // Ship transforms
-    /*
-    Mat4 scale = Mat4::makeScale(Vec3(0.2f, 0.2f, 0.2f));
     Mat4 rotation = Mat4::makeYRotation(180.0f) * Mat4::makeXRotation(90.0f);
     Mat4 translation = Mat4::makeTranslation(Vec3(0.0f, 0.0f, -2.0f));
-    Mat4 model = translation * rotation * scale;
+    Mat4 model = translation * rotation;
     Mat4 ship_normal_transform = ((view_transform * model.inverse())).transpose();
 
     Ship ship;
     ship.setUniforms(model, view_transform, ship_normal_transform, proj_transform, dir_light_1, dir_light_2);
-    */
+    BBox ship_bbox = ship.getBBox();
+    ship_length = fabs(ship_bbox.min[2] - ship_bbox.max[2]);
+
 
     // Box transforms
     Mat4 transform = view_transform;

@@ -4,9 +4,8 @@
 #include "ray.h"
 #include "mat.h"
 
-class BBox
+struct BBox
 {
-public:
     BBox()
         :min(Vec3(0.0f, 0.0f, 0.0f)), max(Vec3(0.0f, 0.0f, 0.0f))
     {}
@@ -53,6 +52,14 @@ public:
             corners[i] = m * corners[i];
             this->enlargeTo(Vec3(corners[i]));
         }        
+    }
+
+    bool bboxIntersect(const BBox& bbox) const
+    {
+        if(max[0] < bbox.min[0] || min[0] > bbox.max[0]) return 0;
+        if(max[1] < bbox.min[1] || min[1] > bbox.max[1]) return 0;
+        if(max[2] < bbox.min[2] || min[2] > bbox.max[2]) return 0;
+        return true;
     }
     
     float rayIntersect(int& face, const Ray& ray) const
@@ -143,6 +150,6 @@ public:
             return TMAX;
         }
     }
-protected:
+
     Vec3 min, max;
 };

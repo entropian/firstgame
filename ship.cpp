@@ -9,6 +9,7 @@
 #define OBJ_LOADER_IMPLEMENTATION
 #include "objloader/objloader.h"
 
+
 Ship::Ship()
 {
     std::string model_base_path("models/");    
@@ -27,11 +28,12 @@ Ship::Ship()
     std::cout << "num_normals: " << ship_obj->num_normals << std::endl;
     std::cout << "num_texcoords: " << ship_obj->num_texcoords << std::endl;
     ship_vert_data.reserve(ship_obj->num_positions + ship_obj->num_normals + ship_obj->num_texcoords);
+    const float scale = 0.2f;
     for(int i = 0; i < ship_obj->num_positions/3; i++)
     {
-        ship_vert_data.push_back(ship_obj->positions[i*3]);
-        ship_vert_data.push_back(ship_obj->positions[i*3 + 1]);
-        ship_vert_data.push_back(ship_obj->positions[i*3 + 2]);
+        ship_vert_data.push_back(ship_obj->positions[i*3] * scale);
+        ship_vert_data.push_back(ship_obj->positions[i*3 + 1] * scale);
+        ship_vert_data.push_back(ship_obj->positions[i*3 + 2] * scale);
         ship_vert_data.push_back(ship_obj->normals[i*3]);
         ship_vert_data.push_back(ship_obj->normals[i*3 + 1]);
         ship_vert_data.push_back(ship_obj->normals[i*3 + 2]);
@@ -164,12 +166,22 @@ void Ship::setUniforms(const Mat4& model_transform, const Mat4& view_transform, 
     glUseProgram(0);
 }
 
+bool Ship::bboxCollide(const BBox& bbox) const
+{
+    return bbox.bboxIntersect(bbox);
+}
+
 void Ship::setViewTransform(const Mat4& view_transform)
 {
     glUseProgram(shader_program);
     GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
     glUniformMatrix4fv(view_handle, 1, GL_TRUE, &(view_transform.data[0][0]));
     glUseProgram(0);
+}
+
+BBox Ship::getBBox()
+{
+    return bbox;
 }
 
 void Ship::draw()
