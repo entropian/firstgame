@@ -6,6 +6,8 @@
 #include "shaders/shader.h"
 #include <float.h>
 #include "bbox.h"
+#include <fstream>
+#include <sstream>
 
 class Box : public BBox
 {

@@ -1,3 +1,4 @@
+#pragma once
 #include <GL/glew.h>
 
 static GLuint loadShader(const char *file_path, const GLenum shader_type)

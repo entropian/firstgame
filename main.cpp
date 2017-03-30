@@ -23,7 +23,7 @@
 #include "box.h"
 #include "camera.h"
 #include "track.h"
-#include "clock.h"
+#include "globalclock.h"
 
 bool EXIT = false;
 
@@ -231,10 +231,14 @@ int main()
     bool show_another_window = false;
     ImVec4 clear_color = ImColor(114, 144, 154);
 
+    GlobalClock gclock;
+    
     bool left_clicking = false;
     glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window) && !EXIT)
 	{
+        gclock.update();
+        std::cout << gclock.getDtSeconds() << "\n";
         glfwPollEvents();
         /*
         ImGui_ImplGlfwGL3_NewFrame();
@@ -301,7 +305,7 @@ int main()
             g_box_unmodded = Box();
             left_clicking = false;
         }
-        
+
         // Update view transform in shaders        
         view_transform = camera.getViewTransform();
         //ship.setViewTransform(view_transform);
@@ -310,7 +314,7 @@ int main()
         box.draw();        
 
         //ImGui::Render();
-		glfwSwapBuffers(window);
+		glfwSwapBuffers(window); // Takes about 0.017 sec or 1/60 sec
 	}
 
     //ImGui_ImplGlfwGL3_Shutdown();

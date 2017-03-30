@@ -74,42 +74,6 @@ public:
                         opposing_axis[j] = true;
                     }
                 }
-                /*
-                if(x_dir == 0.0f)
-                {
-                    if(center_displacement[0] != 0.0f)
-                    {
-                        x_dir = center_displacement[0];
-                    }
-                }
-                if(y_dir == 0.0f)
-                {
-                    if(center_displacement[1] != 0.0f)
-                    {
-                        y_dir = center_displacement[1];
-                    }
-                }
-                if(z_dir == 0.0f)
-                {
-                    if(center_displacement[2] != 0.0f)
-                    {
-                        z_dir = center_displacement[2];
-                    }
-                }
-
-                if(center_displacement[0] * x_dir < 0.0f)
-                {
-                    opposing_axis[0] = true;
-                }
-                if(center_displacement[1] * y_dir < 0.0f)
-                {
-                    opposing_axis[1] = true;
-                }
-                if(center_displacement[2] * z_dir < 0.0f)
-                {
-                    opposing_axis[2] = true;
-                }                
-                */
                 count++;
             }
         }
