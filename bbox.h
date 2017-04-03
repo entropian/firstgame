@@ -151,6 +151,54 @@ struct BBox
         }
     }
 
+    float calcOverlapTime(int& hit_direction, BBox* b, const Vec3 velocity)
+    {
+        float overlap_time_x = 0.0f;
+        if(velocity[0] > 0.0f)
+        {
+            overlap_time_x = max[0] - b->min[0] / velocity[0];
+        }else if(velocity[0] < 0.0f)
+        {
+            overlap_time_x = min[0] - b->max[0] / velocity[0];
+        }
+
+        float overlap_time_y = 0.0f;
+        if(velocity[1] > 0.0f)
+        {
+            overlap_time_y = max[1] - b->min[1] / velocity[1];
+        }else if(velocity[1] < 0.0f)
+        {
+            overlap_time_y = min[1] - b->max[1] / velocity[1];
+        }
+
+        float overlap_time_z = 0.0f;
+        if(velocity[2] > 0.0f)
+        {
+            overlap_time_z = max[2] - b->min[2] / velocity[2];
+        }else if(velocity[2] < 0.0f)
+        {
+            overlap_time_z= min[2] - b->max[2] / velocity[2];
+        }
+
+        float greatest_overlap_time = 0.0f;
+        if(overlap_time_x > overlap_time_y)
+        {
+            greatest_overlap_time = overlap_time_x;
+            hit_direction = 0;
+        }else
+        {
+            greatest_overlap_time = overlap_time_y;
+            hit_direction = 1;
+        }
+
+        if(overlap_time_z > greatest_overlap_time)
+        {
+            greatest_overlap_time = overlap_time_z;
+            hit_direction = 2;
+        }
+        return greatest_overlap_time;
+    }
+
     float calcMinPenetration(int& axis_index, const BBox* b)
     {
         // Determine the absolute value of penetration in each axis

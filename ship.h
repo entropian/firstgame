@@ -16,25 +16,9 @@ public:
     void setViewTransform(const Mat4& view_transform);
     bool bboxCollide(const BBox& bbox) const;
     BBox getBBox();
-    void updatePos(const float dt, Track& track)
+    void calcGreatestMinPenetration(Vec3& greatest_min_penetration, BBox& new_bbox, const int collided,
+        bool opposing_axis[3])
     {
-        Vec3 dp;
-        BBox new_bbox(bbox);
-        if(velocity[0] != 0.0f && velocity[1] != 0.0f && velocity[2] != 0.0f)
-        {
-            dp = velocity * dt;
-            new_bbox.min += dp;
-            new_bbox.max + dp;
-        }
-        bool opposing_axis[3];
-        int collided = track.bboxCollideWithTrack(colliding_boxes, opposing_axis, new_bbox);
-        bool on_surface = false;
-        bool stopped = false;
-
-        float greatest_min_x_penetration = 0.0f;
-        float greatest_min_y_penetration = 0.0f;
-        float greatest_min_z_penetration = 0.0f;
-
         // If new_bbox collides with track, calculate the distance along the three axes
         // that new_bbox should be moved so that it doesn't collide with the track anymore
         for(int i = 0; i < collided; i++)
@@ -55,60 +39,63 @@ public:
             switch(min_index)
             {
             case 0:
-                if(fabs(min_penetration) > fabs(greatest_min_x_penetration))
+                if(fabs(min_penetration) > fabs(greatest_min_penetration[0]))
                 {
-                    greatest_min_x_penetration = min_penetration;
+                    greatest_min_penetration[0] = min_penetration;
                 }
                 break;
             case 1:
-                if(fabs(min_penetration) > fabs(greatest_min_y_penetration))
+                if(fabs(min_penetration) > fabs(greatest_min_penetration[1]))
                 {
-                    greatest_min_y_penetration = min_penetration;
+                    greatest_min_penetration[1] = min_penetration;
                 }
                 break;
             case 2:
-                if(fabs(min_penetration) > fabs(greatest_min_x_penetration))
+                if(fabs(min_penetration) > fabs(greatest_min_penetration[2]))
                 {
-                    greatest_min_x_penetration = min_penetration;
+                    greatest_min_penetration[2] = min_penetration;
                 }
                 break;
             }
+        }        
+    }
+    
+    void updatePos(const float dt, Track& track)
+    {
+        Vec3 dp;
+        BBox new_bbox(bbox);
+        if(velocity[0] != 0.0f && velocity[1] != 0.0f && velocity[2] != 0.0f)
+        {
+            dp = velocity * dt;
+            new_bbox.min += dp;
+            new_bbox.max + dp;
         }
 
-        // NOTE: margin for y axis?
+        bool opposing_axis[3];
+        int collided = track.bboxCollideWithTrack(colliding_boxes, opposing_axis, new_bbox);
 
-        // Calculate distance per unit axis
-        float x_penetration_time = greatest_min_x_penetration / velocity[0];
-        float y_penetration_time = greatest_min_y_penetration / velocity[1];
-        float z_penetration_time = greatest_min_z_penetration / velocity[2];        
-        float greatest_penetration_time;
-        int axis;
-        if(x_penetration_time > y_penetration_time)
+        int hit_dir = -1;
+        float overlap_time = 0.0f;
+        for(int i = 0; i < collided; i++)
         {
-            greatest_penetration_time = x_penetration_time;
-            axis = 0;
-        }else
-        {
-            greatest_penetration_time = y_penetration_time;
-            axis = 1;
+            Box* track_box = colliding_boxes[i];
+            int tmp_hit_dir;
+            float tmp_overlap_time = new_bbox.calcOverlapTime(tmp_hit_dir, track_box, velocity);
+            if(tmp_overlap_time > overlap_time)
+            {
+                overlap_time = tmp_overlap_time;
+                hit_dir = tmp_hit_dir;
+            }
         }
-        if(z_penetration_time > greatest_penetration_time)
+
+        if(collided > 0)
         {
-            greatest_penetration_time = z_penetration_time;
-            axis = 2;
+            dp = velocity * (dt - overlap_time);
+            bbox.min += dp;
+            bbox.max += dp;
+            pos += dp;
+            velocity[hit_dir] = 0.0f;
         }
-                
-        // Move ship back by corresponding distance, then move ship along new velocity
-        // in the remaining time after collision
-        if(greatest_penetration_time > 0.0f)
-        {
-            dp += -velocity * greatest_penetration_time;
-            // Assume greatest_penetration_time < dt
-            float remaining_time = dt - greatest_penetration_time;
-            velocity[axis] = 0.0f;
-            dp += velocity * remaining_time;
-        }
-        pos += dp;
     }
     void draw();
 private:
