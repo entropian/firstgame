@@ -1,9 +1,9 @@
 /*
   TODO:
+  add translation to ship
   make the main game loop timestep based
   make ship velocity work with timestep
   move ship scale into class itself
-  figure out what sides the bbox collided on
   add some kind of grid for track editing
  */
 
@@ -42,6 +42,11 @@ Box g_box_unmodded;
 int g_box_side = -1;
 
 float ship_length = 0.0f;
+
+// Game mode
+// 0 = play mode
+// 1 = edit mode
+unsigned int g_game_mode = 0;
 
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
@@ -216,29 +221,33 @@ int main()
     // Box transforms
     Mat4 transform = view_transform;
     Mat4 normal_transform = (transform.inverse()).transpose();
-    
+
+    // Track stuff
+    Track track;
+    //track.addBox(Box(Vec3(-10.0f, -0.5f, -100.0f), Vec3(10.0f, 0.0f, 10.0f)));
+    track.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
+
+    // Box
     Vec3 min(-0.5f, -0.5f, -4.0f);
     Vec3 max(0.5f, 0.5f, -2.0f);
     Vec3 center = (max - min) * 0.5 + min;
     Box box(min, max);    
-    box.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
+    track.addBox(box);
 
     std::vector<Box> boxes;
     boxes.push_back(box);
 
+
+
     // IMGUI stuff
     bool show_test_window = true;
     bool show_another_window = false;
-    ImVec4 clear_color = ImColor(114, 144, 154);
-
-    GlobalClock gclock;
+    ImVec4 clear_color = ImColor(114, 144, 154);    
     
     bool left_clicking = false;
     glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window) && !EXIT)
 	{
-        gclock.update();
-        std::cout << gclock.getDtSeconds() << "\n";
         glfwPollEvents();
         /*
         ImGui_ImplGlfwGL3_NewFrame();
@@ -255,63 +264,61 @@ int main()
         
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        if(!left_clicking && g_left_clicking)
+        
+        if(g_game_mode == 1)
         {
-            float click_x, click_y;
-            getNormalizedWindowCoord(click_x, click_y, g_click_xpos, g_click_ypos, window);
-            Ray ray = camera.calcRayFromScreenCoord(click_x, click_y);
-
-            // Intersection
-            // TODO: multiple boxes
-            float t = box.rayIntersect(g_box_side, ray);
-            if(t < TMAX)
+            if(!left_clicking && g_left_clicking)
             {
-                g_box_ptr = &box;
-                g_box_unmodded = box;
-            }else
+                float click_x, click_y;
+                getNormalizedWindowCoord(click_x, click_y, g_click_xpos, g_click_ypos, window);
+                Ray ray = camera.calcRayFromScreenCoord(click_x, click_y);
+
+                // Intersection
+                // TODO: multiple boxes
+                float t = box.rayIntersect(g_box_side, ray);
+                if(t < TMAX)
+                {
+                    g_box_ptr = &box;
+                    g_box_unmodded = box;
+                }else
+                {
+                    g_box_ptr = nullptr;
+                    g_box_unmodded = Box();
+                }
+                std::cout << "t " << t << std::endl;
+                Vec3 hit_point = ray.origin + ray.dir * t;
+                printf("hit_point: %f, %f, %f\n", hit_point[0], hit_point[1], hit_point[2]); 
+                std::cout << std::endl;
+                left_clicking = true;
+            }else if(left_clicking && g_left_clicking && g_box_ptr)
+            {
+                double x_diff = g_cursor_xpos - g_click_xpos;
+                double y_diff = -(g_cursor_ypos - g_click_ypos);
+                float x_norm = x_diff / g_window_width * g_aspect_ratio;
+                float y_norm = y_diff / g_window_height;
+                Vec3 cursor_vec = Vec3(g_camera_ptr->getOrientation() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+                Vec3 box_normal = g_box_ptr->getSideNormal(g_box_side);
+                // TODO: change 0.1f to something dependent on box distance from camera
+                float amount = dot(cursor_vec, box_normal) * 1.0f;
+                *g_box_ptr = g_box_unmodded;
+                g_box_ptr->changeLength(g_box_side, amount);
+            }else if(left_clicking && !g_left_clicking)
             {
                 g_box_ptr = nullptr;
                 g_box_unmodded = Box();
+                left_clicking = false;
             }
-            std::cout << "t " << t << std::endl;
-            Vec3 hit_point = ray.origin + ray.dir * t;
-            printf("hit_point: %f, %f, %f\n", hit_point[0], hit_point[1], hit_point[2]); 
-            std::cout << std::endl;
-            left_clicking = true;
-        }else if(left_clicking && g_left_clicking && g_box_ptr)
+        }else if(g_game_mode == 0)
         {
-            // To get a vector in world space
-            // get window coords
-            // get difference
-            // divide by window physical dimension
-            // multiply by camera x and y basis
-            // dot the vector with the box's vector
-            // multiply the dot product with a certain constant
-            // change the box's length by that amount
-            double x_diff = g_cursor_xpos - g_click_xpos;
-            double y_diff = -(g_cursor_ypos - g_click_ypos);
-            float x_norm = x_diff / g_window_width * g_aspect_ratio;
-            float y_norm = y_diff / g_window_height;
-            Vec3 cursor_vec = Vec3(g_camera_ptr->getOrientation() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
-            Vec3 box_normal = g_box_ptr->getSideNormal(g_box_side);
-            // TODO: change 0.1f to something dependent on box distance from camera
-            float amount = dot(cursor_vec, box_normal) * 1.0f;
-            *g_box_ptr = g_box_unmodded;
-            g_box_ptr->changeLength(g_box_side, amount);
-        }else if(left_clicking && !g_left_clicking)
-        {
-            g_box_ptr = nullptr;
-            g_box_unmodded = Box();
-            left_clicking = false;
+
         }
 
         // Update view transform in shaders        
         view_transform = camera.getViewTransform();
         //ship.setViewTransform(view_transform);
         //ship.draw();
-        box.setViewTransform(view_transform);
-        box.draw();        
+        track.setViewTransform(view_transform);
+        track.draw();
 
         //ImGui::Render();
 		glfwSwapBuffers(window); // Takes about 0.017 sec or 1/60 sec

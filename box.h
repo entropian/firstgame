@@ -1,5 +1,5 @@
 #pragma once
-#include <GL/glew.h>
+
 #include <vector>
 #include <cassert>
 #include "vec.h"
@@ -26,73 +26,28 @@ public:
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         constructBox();
-
-        // Shaders
-        std::ifstream vert_fstream("shaders/box.vs");
-        std::stringstream buffer;
-        buffer << vert_fstream.rdbuf();
-        vert_fstream.close();
-        std::string vert_src = buffer.str();
-        const char* vert_src_cstr = vert_src.c_str();    
-        GLuint vert_shader = loadShader(vert_src_cstr, GL_VERTEX_SHADER);
-
-        std::ifstream frag_fstream("shaders/box.fs");
-        buffer.str("");
-        buffer << frag_fstream.rdbuf();
-        std::string frag_src = buffer.str();
-        const char* frag_src_cstr = frag_src.c_str();
-        GLuint frag_shader = loadShader(frag_src_cstr, GL_FRAGMENT_SHADER);
-
-        shader_program = glCreateProgram();
-        glAttachShader(shader_program, vert_shader);
-        glAttachShader(shader_program, frag_shader);
-        glBindFragDataLocation(shader_program, 0, "outColor");
-        glLinkProgram(shader_program);
-        glUseProgram(shader_program);
-        glDeleteShader(frag_shader);
-        glDeleteShader(vert_shader);
-
+        glBindVertexArray(0);        
+        num_vertices = 36;
+    }
+    void setAttributesToShader(GLuint shader)
+    {
         // Setting attributes
+        glUseProgram(shader);
+        glBindVertexArray(vao);
         GLsizei stride = sizeof(GLfloat) * 6; // 3 pos + 3 normal 
-        GLint posAttrib = glGetAttribLocation(shader_program, "position");
+        GLint posAttrib = glGetAttribLocation(shader, "position");
         glEnableVertexAttribArray(posAttrib);
         glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, stride, 0);
 
-        GLint normAttrib = glGetAttribLocation(shader_program, "normal");
+        GLint normAttrib = glGetAttribLocation(shader, "normal");
         glEnableVertexAttribArray(normAttrib);
         glVertexAttribPointer(normAttrib, 3, GL_FLOAT, GL_FALSE, stride, (const void*)(sizeof(GLfloat) * 3));        
 
         glUseProgram(0);
         glBindVertexArray(0);
-        num_vertices = 36;
+        num_vertices = 36;        
     }
 
-    void setUniforms(const Mat4& view_transform, const Mat4& normal_transform,
-                     const Mat4& proj_transform, const Vec3& dir_light_1,
-                     const Vec3& dir_light_2)
-    {
-        glUseProgram(shader_program);
-        GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
-        glUniformMatrix4fv(view_handle, 1, GL_TRUE, &(view_transform.data[0][0]));
-        GLint proj_handle = glGetUniformLocation(shader_program, "proj_mat");
-        glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_transform.data[0][0]));
-        GLint normal_transform_handle = glGetUniformLocation(shader_program, "normal_mat");
-        glUniformMatrix4fv(normal_transform_handle, 1, GL_TRUE, &(normal_transform.data[0][0]));
-    
-        GLint dir_light_1_handle = glGetUniformLocation(shader_program, "dir_light_1");
-        glUniform3fv(dir_light_1_handle, 1, (const GLfloat*)(dir_light_1.data));
-        GLint dir_light_2_handle = glGetUniformLocation(shader_program, "dir_light_2");
-        glUniform3fv(dir_light_2_handle, 1, (const GLfloat*)(dir_light_2.data));
-        glUseProgram(0);
-    }
-
-    void setViewTransform(const Mat4& view_transform)
-    {
-        glUseProgram(shader_program);
-        GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
-        glUniformMatrix4fv(view_handle, 1, GL_TRUE, &(view_transform.data[0][0]));
-        glUseProgram(0);
-    }
 
     void changeLength(const int side_num, const float amount)
     {
@@ -165,12 +120,18 @@ public:
     void draw()
     {
         glBindVertexArray(vao);
-        glUseProgram(shader_program);
         glDrawArrays(GL_TRIANGLES, 0, num_vertices);
         glBindVertexArray(0);
     }
 
-
+    void drawShader(const GLuint shader)
+    {
+        glBindVertexArray(vao);
+        glUseProgram(shader);
+        glDrawArrays(GL_TRIANGLES, 0, num_vertices);
+        glBindVertexArray(0);
+    }
+    
     Vec3 getSideNormal(const int side_num)
     {
         switch(side_num)
@@ -312,5 +273,4 @@ private:
     
     int num_vertices;
     GLuint vao, vbo, ibo;
-    GLuint shader_program;
 };
