@@ -18,51 +18,6 @@ typedef int64_t I64;
 typedef float F32;
 typedef double F64;
 
-/* assembly code to read the TSC */
-static inline uint64_t RDTSC()
-{
-  unsigned int hi, lo;
-  __asm__ volatile("rdtsc" : "=a" (lo), "=d" (hi));
-  return ((uint64_t)hi << 32) | lo;
-}
-
-const int NANO_SECONDS_IN_SEC = 1000000000;
-struct timespec *TimeSpecDiff(struct timespec *ts1, struct timespec *ts2)
-{
-  static struct timespec ts;
-  ts.tv_sec = ts1->tv_sec - ts2->tv_sec;
-  ts.tv_nsec = ts1->tv_nsec - ts2->tv_nsec;
-  if (ts.tv_nsec < 0) {
-    ts.tv_sec--;
-    ts.tv_nsec += NANO_SECONDS_IN_SEC;
-  }
-  return &ts;
-}
- 
-double g_TicksPerNanoSec;
-static void CalibrateTicks()
-{
-  struct timespec begints, endts;
-  uint64_t begin = 0, end = 0;
-  clock_gettime(CLOCK_MONOTONIC, &begints);
-  begin = RDTSC();
-  uint64_t i;
-  for (i = 0; i < 1000000; i++); /* must be CPU intensive */
-  end = RDTSC();
-  clock_gettime(CLOCK_MONOTONIC, &endts);
-  struct timespec *tmpts = TimeSpecDiff(&endts, &begints);
-  uint64_t nsecElapsed = tmpts->tv_sec * 1000000000LL + tmpts->tv_nsec;
-  g_TicksPerNanoSec = (double)(end - begin)/(double)nsecElapsed;
-}
- 
-/* Call once before using RDTSC, has side effect of binding process to CPU1 */
-void InitRdtsc()
-{
-  unsigned long cpuMask;
-  cpuMask = 2; // bind to cpu 1
-  sched_setaffinity(0, sizeof(cpuMask), (const cpu_set_t*)(&cpuMask));
-  CalibrateTicks();
-}
 
 float FRAME_TIME = 1.0f / 30.0f;
 

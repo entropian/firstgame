@@ -54,7 +54,7 @@ public:
         glUseProgram(0);
     }
 
-    void addBox(Box& box)
+    void addBox(Box box)
     {
         box.setAttributesToShader(shader_program);
         boxes.push_back(box);

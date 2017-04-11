@@ -11,11 +11,11 @@ class Ship
 public:
     Ship();
     ~Ship();
-    void setUniforms(const Mat4& model_transform, const Mat4& view_transform, const Mat4& normal_transform,
-                     const Mat4 proj_transform, const Vec3& dir_light_1, const Vec3& dir_light_2);
+    void setStaticUniforms(const Mat4& proj_transform, const Vec3& dir_light_1, const Vec3& dir_light_2);
     void setViewTransform(const Mat4& view_transform);
+    void updateDynamicUniforms(const Mat4& view_transform);
     bool bboxCollide(const BBox& bbox) const;
-    BBox getBBox();
+    BBox getBBox();    
     void calcGreatestMinPenetration(Vec3& greatest_min_penetration, BBox& new_bbox, const int collided,
         bool opposing_axis[3])
     {
@@ -59,8 +59,38 @@ public:
             }
         }        
     }
+
+    void updateVelocity(const int velocity_change[3])
+    {
+        const float x_speed = 2.0f;
+        const float y_speed = 2.0f;
+        const float z_speed = -5.0f;
+        if(velocity_change[0] == 1)
+        {
+            velocity[0] = x_speed;
+        }else if(velocity_change[0] == -1)
+        {
+            velocity[0] = -x_speed;
+        }else if(velocity_change[0] == 0)
+        {
+            velocity[0] = 0.0f;
+        }
+
+
+        if(velocity_change[2] == 1)
+        {
+            velocity[2] = z_speed;
+        }else if(velocity_change[2] == -1)
+        {
+            velocity[2] = -z_speed;
+        }else if(velocity_change[2] == 0)
+        {
+            velocity[2] = 0.0f;
+        }        
+
+    }
     
-    void updatePos(const float dt, Track& track)
+    void updatePosAndVelocity(const float dt, Track& track)
     {
         Vec3 dp;
         BBox new_bbox(bbox);
@@ -93,17 +123,23 @@ public:
             dp = velocity * (dt - overlap_time);
             bbox.min += dp;
             bbox.max += dp;
-            pos += dp;
+            //pos += dp;
             velocity[hit_dir] = 0.0f;
         }
+        Mat4 displacement = Mat4::makeTranslation(dp);
+        transform = transform * displacement;
     }
     void draw();
 private:
     GLuint vao, vbo, ibo, shader_program;
-    GLuint diffuse_handle, normal_handle;
+    // Texture handles
+    GLuint diffuse_map, normal_map;
+    // Shader dynamic uniforms
+    GLuint u_model_mat, u_normal_mat, u_view_mat;
+    
     unsigned int num_indices;
     BBox bbox;
     Box* colliding_boxes[24]; // Assuming that each side of the space can collide with up to 4 boxes
     Vec3 velocity;
-    Vec3 pos;
+    Mat4 transform;    
 };

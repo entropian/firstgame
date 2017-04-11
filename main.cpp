@@ -5,6 +5,7 @@
   make ship velocity work with timestep
   move ship scale into class itself
   add some kind of grid for track editing
+  lookat for camera
  */
 
 #include <GL/glew.h>
@@ -48,6 +49,56 @@ float ship_length = 0.0f;
 // 1 = edit mode
 unsigned int g_game_mode = 0;
 
+struct Input
+{
+    unsigned int w;
+    unsigned int a;
+    unsigned int s;
+    unsigned int d;
+    unsigned int q;
+
+    unsigned int left_click;
+    unsigned int right_click;
+};
+
+void getVelocityChange(int output[3], const Input& input)
+{
+    output[0] = 0;
+    output[1] = 0;
+    output[2] = 0;
+    if(input.w)
+    {
+        if(!input.s)
+        {
+            output[2] = -1;
+        }else
+        {
+            output[2] = 0;
+        }
+    }
+    if(input.s)
+    {
+        output[2] = 1;
+    }
+
+    if(input.a)
+    {
+        if(!input.d)
+        {
+            output[0] = -1;
+        }else
+        {
+            output[0] = 0;
+        }
+    }
+    if(input.d)
+    {
+        output[0] = 1;
+    }
+}
+
+Input g_input;
+
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
     if(action == GLFW_PRESS)
@@ -56,45 +107,48 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
         case GLFW_KEY_W:
         {
-            g_camera_ptr->move(4, 0.1f); 
+            g_input.w = 1;
         } break;
         case GLFW_KEY_A:
         {
-            g_camera_ptr->move(1, 0.1f);
+            g_input.a = 1;
         } break;
         case GLFW_KEY_S:
         {
-            g_camera_ptr->move(5, 0.1f); 
+            g_input.s = 1;
         } break;
         case GLFW_KEY_D:
         {
-            g_camera_ptr->move(0, 0.1f);
+            g_input.d = 1;
         } break;
-        case GLFW_KEY_T:
-        {
-            g_camera_ptr->turnSideways(5.0f);
-        } break;
-        case GLFW_KEY_R:
-        {
-            g_camera_ptr->turnSideways(-5.0f);
-        } break;
-        case GLFW_KEY_G:
-        {
-            if(g_box_ptr && g_box_side != -1)
-            {
-                g_box_ptr->changeLength(g_box_side, 0.1f);
-            }
-        } break;
-        case GLFW_KEY_H:
-        {
-            if(g_box_ptr && g_box_side != -1)
-            {
-                g_box_ptr->changeLength(g_box_side, -0.1f);
-            }
-        } break;        
         case GLFW_KEY_Q:
         {
-            EXIT = true;
+            g_input.q = 1;
+        } break;
+        }
+    }else
+    {
+        switch(key)
+        {
+        case GLFW_KEY_W:
+        {
+            g_input.w = 0;
+        } break;
+        case GLFW_KEY_A:
+        {
+            g_input.a = 0;
+        } break;
+        case GLFW_KEY_S:
+        {
+            g_input.s = 0;
+        } break;
+        case GLFW_KEY_D:
+        {
+            g_input.d = 0;
+        } break;
+        case GLFW_KEY_Q:
+        {
+            g_input.q = 0;
         } break;
         }
     }
@@ -201,21 +255,15 @@ int main()
     float fov = 90.0f;
     // NOTE: where to put proj_transform?
     Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));
-    Camera camera(MINUS_Z, UP, ORIGIN, fov, aspect_ratio);
+    Camera camera(MINUS_Z, UP, Vec3(0.0f, 1.0f, 4.0f), fov, aspect_ratio);
     g_camera_ptr = &camera;
     Mat4 view_transform = camera.getViewTransform();
 
 
     // Ship transforms
-    Mat4 rotation = Mat4::makeYRotation(180.0f) * Mat4::makeXRotation(90.0f);
-    Mat4 translation = Mat4::makeTranslation(Vec3(0.0f, 0.0f, -2.0f));
-    Mat4 model = translation * rotation;
-    Mat4 ship_normal_transform = ((view_transform * model.inverse())).transpose();
-
+    //Mat4 ship_normal_transform = ((view_transform * model.inverse())).transpose();
     Ship ship;
-    ship.setUniforms(model, view_transform, ship_normal_transform, proj_transform, dir_light_1, dir_light_2);
-    BBox ship_bbox = ship.getBBox();
-    ship_length = fabs(ship_bbox.min[2] - ship_bbox.max[2]);
+    ship.setStaticUniforms(proj_transform, dir_light_1, dir_light_2);
 
 
     // Box transforms
@@ -223,32 +271,37 @@ int main()
     Mat4 normal_transform = (transform.inverse()).transpose();
 
     // Track stuff
+    /*
     Track track;
-    //track.addBox(Box(Vec3(-10.0f, -0.5f, -100.0f), Vec3(10.0f, 0.0f, 10.0f)));
+    track.addBox(Box(Vec3(-10.0f, -0.5f, -100.0f), Vec3(10.0f, 0.0f, 10.0f)));
     track.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
+    */
 
     // Box
     Vec3 min(-0.5f, -0.5f, -4.0f);
     Vec3 max(0.5f, 0.5f, -2.0f);
     Vec3 center = (max - min) * 0.5 + min;
     Box box(min, max);    
-    track.addBox(box);
+    //track.addBox(box);
 
-    std::vector<Box> boxes;
-    boxes.push_back(box);
+    //std::vector<Box> boxes;
+    //boxes.push_back(box);
 
 
 
     // IMGUI stuff
     bool show_test_window = true;
     bool show_another_window = false;
-    ImVec4 clear_color = ImColor(114, 144, 154);    
+    ImVec4 clear_color = ImColor(114, 144, 154);
+
+    GlobalClock gclock;
     
     bool left_clicking = false;
     glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window) && !EXIT)
-	{
+	{        
         glfwPollEvents();
+        gclock.update();
         /*
         ImGui_ImplGlfwGL3_NewFrame();
         {
@@ -264,7 +317,7 @@ int main()
         
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+
         if(g_game_mode == 1)
         {
             if(!left_clicking && g_left_clicking)
@@ -310,15 +363,24 @@ int main()
             }
         }else if(g_game_mode == 0)
         {
+            // Process input
+            // Update ship position and velocity based on velocity from last frame
+            //ship.updatePosAndVelocity();
+            // Update ship velocity based on keyboard input
+            int velocity_change[3];
+            getVelocityChange(velocity_change, g_input);
+            ship.updateVelocity(velocity_change);
 
+            //ship.updateDynamicUniforms(view_transform);
         }
 
         // Update view transform in shaders        
         view_transform = camera.getViewTransform();
         //ship.setViewTransform(view_transform);
-        //ship.draw();
-        track.setViewTransform(view_transform);
-        track.draw();
+        ship.updateDynamicUniforms(view_transform);
+        ship.draw();
+        //track.setViewTransform(view_transform);
+        //track.draw();
 
         //ImGui::Render();
 		glfwSwapBuffers(window); // Takes about 0.017 sec or 1/60 sec

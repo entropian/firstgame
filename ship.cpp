@@ -8,6 +8,7 @@
 #include "shaders/shader.h"
 #define OBJ_LOADER_IMPLEMENTATION
 #include "objloader/objloader.h"
+#include "mat.h"
 
 
 Ship::Ship()
@@ -31,16 +32,17 @@ Ship::Ship()
     const float scale = 0.2f;
     for(int i = 0; i < ship_obj->num_positions/3; i++)
     {
-        ship_vert_data.push_back(ship_obj->positions[i*3] * scale);
-        ship_vert_data.push_back(ship_obj->positions[i*3 + 1] * scale);
-        ship_vert_data.push_back(ship_obj->positions[i*3 + 2] * scale);
+        Vec3 scaled_pos(ship_obj->positions[i*3] * scale, ship_obj->positions[i*3 + 1] * scale,
+            ship_obj->positions[i*3 + 2] * scale);
+        ship_vert_data.push_back(scaled_pos[0]);
+        ship_vert_data.push_back(scaled_pos[1]);
+        ship_vert_data.push_back(scaled_pos[2]);
         ship_vert_data.push_back(ship_obj->normals[i*3]);
         ship_vert_data.push_back(ship_obj->normals[i*3 + 1]);
         ship_vert_data.push_back(ship_obj->normals[i*3 + 2]);
         ship_vert_data.push_back(ship_obj->texcoords[i*2]);
         ship_vert_data.push_back(-ship_obj->texcoords[i*2 + 1]);
-        bbox.enlargeTo(Vec3(ship_obj->positions[i*3], ship_obj->positions[i*3 + 1],
-                           ship_obj->positions[i*3 + 2]));
+        bbox.enlargeTo(scaled_pos);
     }
         
     glGenVertexArrays(1, &vao);
@@ -57,16 +59,15 @@ Ship::Ship()
                  GL_STATIC_DRAW);
     num_indices = ship_obj->num_indices;
 
-
     // Textures
     Texture ship_diffuse_tex("models/Ship2_diffuse.png");
     Texture ship_normal_tex("models/Ship2_Normal.png");
 
-    glGenTextures(1, &diffuse_handle);
-    glGenTextures(1, &normal_handle);
+    glGenTextures(1, &diffuse_map);
+    glGenTextures(1, &normal_map);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, diffuse_handle);
+    glBindTexture(GL_TEXTURE_2D, diffuse_map);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ship_diffuse_tex.width, ship_diffuse_tex.height, 0, GL_RGB,
                  GL_UNSIGNED_BYTE, ship_diffuse_tex.data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -75,7 +76,7 @@ Ship::Ship()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, normal_handle);
+    glBindTexture(GL_TEXTURE_2D, normal_map);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ship_normal_tex.width, ship_normal_tex.height, 0, GL_RGB,
                  GL_UNSIGNED_BYTE, ship_normal_tex.data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -123,13 +124,26 @@ Ship::Ship()
     glEnableVertexAttribArray(texcoordAttrib);
     glVertexAttribPointer(texcoordAttrib, 2, GL_FLOAT, GL_FALSE, stride, (const void*)(sizeof(GLfloat) * 6));
 
-    glUseProgram(0);
-    glBindVertexArray(0);
-        
     for (int i = 0; i < num_shapes; ++i)
     {
         OBJShape_destroy(&(obj_shapes[i]));
     }
+    // Get shader uniform handles
+    u_model_mat = glGetUniformLocation(shader_program, "model_mat");
+    u_view_mat = glGetUniformLocation(shader_program, "view_mat");
+    u_normal_mat = glGetUniformLocation(shader_program, "normal_mat");
+
+    // Center the ship
+    Vec3 bbox_center = (bbox.max - bbox.min) * 0.5 + bbox.min;
+    Mat4 translation = Mat4::makeTranslation(-bbox_center);
+    // Initial rotation for pointing the ship at -z
+    Mat4 rotation = Mat4::makeYRotation(180.0f) * Mat4::makeXRotation(90.0f);
+    transform = rotation * translation;
+    bbox.transform(transform);
+    glUniformMatrix4fv(u_model_mat, 1, GL_TRUE, &(transform.data[0][0]));
+
+    glUseProgram(0);
+    glBindVertexArray(0);
 }
 
 Ship::~Ship()
@@ -140,29 +154,31 @@ Ship::~Ship()
     glDeleteVertexArrays(1, &vao);
 }
 
-void Ship::setUniforms(const Mat4& model_transform, const Mat4& view_transform, const Mat4& normal_transform,
-                     const Mat4 proj_transform, const Vec3& dir_light_1, const Vec3& dir_light_2)
+void Ship::setStaticUniforms(const Mat4& proj_transform, const Vec3& dir_light_1, const Vec3& dir_light_2)
 {
-    bbox.transform(model_transform);
-    
     glUseProgram(shader_program);
-    GLint model_handle = glGetUniformLocation(shader_program, "model_mat");
-    glUniformMatrix4fv(model_handle, 1, GL_TRUE, &(model_transform.data[0][0]));
-    GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
-    glUniformMatrix4fv(view_handle, 1, GL_TRUE, &(view_transform.data[0][0]));
-    GLint proj_handle = glGetUniformLocation(shader_program, "proj_mat");
-    glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_transform.data[0][0]));
-    GLint normal_transform_handle = glGetUniformLocation(shader_program, "normal_mat");
-    glUniformMatrix4fv(normal_transform_handle, 1, GL_TRUE, &(normal_transform.data[0][0]));
+    GLint u_proj_mat = glGetUniformLocation(shader_program, "proj_mat");
+    glUniformMatrix4fv(u_proj_mat, 1, GL_TRUE, &(proj_transform.data[0][0]));
     
-    GLint diffuse_map_handle = glGetUniformLocation(shader_program, "diffuse_map");
+    GLint u_diffuse_map = glGetUniformLocation(shader_program, "diffuse_map");
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, diffuse_handle);
-    glUniform1i(diffuse_map_handle, 0);
-    GLint dir_light_1_handle = glGetUniformLocation(shader_program, "dir_light_1");
-    glUniform3fv(dir_light_1_handle, 1, (const GLfloat*)(dir_light_1.data));
-    GLint dir_light_2_handle = glGetUniformLocation(shader_program, "dir_light_2");
-    glUniform3fv(dir_light_2_handle, 1, (const GLfloat*)(dir_light_2.data));
+    glBindTexture(GL_TEXTURE_2D, diffuse_map);
+    glUniform1i(u_diffuse_map, 0);
+    GLint u_dir_light_1 = glGetUniformLocation(shader_program, "dir_light_1");
+    glUniform3fv(u_dir_light_1, 1, (const GLfloat*)(dir_light_1.data));
+    GLint u_dir_light_2 = glGetUniformLocation(shader_program, "dir_light_2");
+    glUniform3fv(u_dir_light_2, 1, (const GLfloat*)(dir_light_2.data));
+    glUseProgram(0);
+}
+
+// Called after ship velocity and position are resolved
+void Ship::updateDynamicUniforms(const Mat4& view_transform)
+{
+    Mat4 normal_transform = (view_transform * this->transform.inverse()).transpose();
+    glUseProgram(shader_program);
+    glUniformMatrix4fv(u_normal_mat, 1, GL_TRUE, &(normal_transform.data[0][0]));
+    glUniformMatrix4fv(u_model_mat, 1, GL_TRUE, &(transform.data[0][0]));
+    glUniformMatrix4fv(u_view_mat, 1, GL_TRUE, &(view_transform.data[0][0]));
     glUseProgram(0);
 }
 
