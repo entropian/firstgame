@@ -94,13 +94,13 @@ public:
     {
         Vec3 dp;
         BBox new_bbox(bbox);
-        if(velocity[0] != 0.0f && velocity[1] != 0.0f && velocity[2] != 0.0f)
+        if(velocity[0] != 0.0f || velocity[1] != 0.0f || velocity[2] != 0.0f)
         {
             dp = velocity * dt;
             new_bbox.min += dp;
-            new_bbox.max + dp;
+            new_bbox.max += dp;
         }
-
+        /*
         bool opposing_axis[3];
         int collided = track.bboxCollideWithTrack(colliding_boxes, opposing_axis, new_bbox);
 
@@ -126,11 +126,14 @@ public:
             //pos += dp;
             velocity[hit_dir] = 0.0f;
         }
+        */
         Mat4 displacement = Mat4::makeTranslation(dp);
-        transform = transform * displacement;
+        printf("dp %f, %f, %f\n", dp[0], dp[1], dp[2]);
+        displacement.print();
+        transform = displacement * transform;
     }
     void draw();
-private:
+//private:
     GLuint vao, vbo, ibo, shader_program;
     // Texture handles
     GLuint diffuse_map, normal_map;

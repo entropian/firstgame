@@ -50,54 +50,124 @@ float ship_length = 0.0f;
 unsigned int g_game_mode = 0;
 
 struct Input
-{
-    unsigned int w;
-    unsigned int a;
-    unsigned int s;
-    unsigned int d;
-    unsigned int q;
+{    
+    int w;
+    int a;
+    int s;
+    int d;
+    int q;
 
     unsigned int left_click;
     unsigned int right_click;
+    Input()
+    {
+        w = 0;
+        a = 0;
+        s = 0;
+        d = 0;
+        q = 0;
+    }
 };
-
-void getVelocityChange(int output[3], const Input& input)
+void initInput(Input& input)
 {
-    output[0] = 0;
-    output[1] = 0;
-    output[2] = 0;
-    if(input.w)
+    input.w = 0;
+    input.a = 0;
+    input.s = 0;
+    input.d = 0;
+    input.q = 0;
+}
+Input g_input;
+
+void calcShipAccelState(int accel_states[3], Input& input)
+{    
+    // 1 is accelerating towards positive
+    // -1 is accelerating towards negative
+    // 0 is accelerating towards 0
+    if((input.w && input.s) || (!input.w && !input.s))
     {
-        if(!input.s)
+        accel_states[2] = 0;
+    }else
+    {
+        if(input.w)
         {
-            output[2] = -1;
-        }else
-        {
-            output[2] = 0;
+            // forwared is negative z
+            accel_states[2] = -1;
         }
-    }
-    if(input.s)
-    {
-        output[2] = 1;
+        if(input.s)
+        {
+            accel_states[2] = 1;
+        }
     }
 
-    if(input.a)
+    if((input.a && input.d) || (!input.a && !input.d))
     {
-        if(!input.d)
+        accel_states[0] = 0;
+    }else
+    {
+        if(input.a)
         {
-            output[0] = -1;
-        }else
+            accel_states[0] = -1;
+        }
+        if(input.d)
         {
-            output[0] = 0;
+            accel_states[0] = 1;
         }
     }
-    if(input.d)
-    {
-        output[0] = 1;
-    }
+    // TODO: y
+    accel_states[1] = 0;
 }
 
-Input g_input;
+const float MAX_Z_VELOCITY = 20.0f;
+const float MAX_X_VELOCITY = 5.0f;
+void calcShipVelocity(Ship& ship, int accel_states[3])
+{
+    // TODO: velocity oscillates around 0    
+    // Z velocity
+    if(ship.velocity[2] < 0.0f)
+    {
+        if(accel_states[2] == -1)
+        {
+            printf("not 0 positive\n");
+            // Accelerating in the same direction as ship motion
+            ship.velocity[2] = -MAX_Z_VELOCITY;
+        }else if(accel_states[2] == 1)
+        {
+            // Acclerating in the opposite direction as ship motion
+            ship.velocity[2] += 5.0f;
+        }else
+        {
+            // Slowing down to 0
+            ship.velocity[2] += 3.0f;
+        }
+    }else if(ship.velocity[2] > 0.0f)
+    {
+        if(accel_states[2] == -1)
+        {
+            // Accelerating in the opposite direction as ship motion
+            ship.velocity[2] -= 5.0;
+        }else if(accel_states[2] == 1)
+        {
+            // Acclerating in the same direction as ship motion
+            ship.velocity[2] = MAX_Z_VELOCITY;
+        }else
+        {
+            // Slowing down to 0
+            ship.velocity[2] -= 3.0f;
+        }        
+    }else
+    {
+        if(accel_states[2] == -1)
+        {
+            // Forward
+            printf("0 positive\n");
+            ship.velocity[2] = -MAX_Z_VELOCITY;
+        }else if(accel_states[2] == 1)
+        {
+            // Backward
+            ship.velocity[2] = MAX_Z_VELOCITY;
+        }
+    }
+}
 
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
@@ -126,7 +196,7 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
             g_input.q = 1;
         } break;
         }
-    }else
+    }else if(action == GLFW_RELEASE)
     {
         switch(key)
         {
@@ -271,11 +341,11 @@ int main()
     Mat4 normal_transform = (transform.inverse()).transpose();
 
     // Track stuff
-    /*
+
     Track track;
-    track.addBox(Box(Vec3(-10.0f, -0.5f, -100.0f), Vec3(10.0f, 0.0f, 10.0f)));
+    //track.addBox(Box(Vec3(-10.0f, -0.5f, -100.0f), Vec3(10.0f, 0.0f, 10.0f)));
     track.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
-    */
+
 
     // Box
     Vec3 min(-0.5f, -0.5f, -4.0f);
@@ -302,6 +372,7 @@ int main()
 	{        
         glfwPollEvents();
         gclock.update();
+        float dt = gclock.getDtSeconds();
         /*
         ImGui_ImplGlfwGL3_NewFrame();
         {
@@ -365,12 +436,14 @@ int main()
         {
             // Process input
             // Update ship position and velocity based on velocity from last frame
-            //ship.updatePosAndVelocity();
+            //ship.updatePosAndVelocity(dt, track);
             // Update ship velocity based on keyboard input
-            int velocity_change[3];
-            getVelocityChange(velocity_change, g_input);
-            ship.updateVelocity(velocity_change);
-
+            int accel_states[3];
+            calcShipAccelState(accel_states, g_input);
+            calcShipVelocity(ship, accel_states);
+            printf("accel_states: %d, %d, %d\n", accel_states[0], accel_states[1], accel_states[2]);
+            printf("velocity: %f, %f, %f\n", ship.velocity[0], ship.velocity[1], ship.velocity[2]);
+            ship.updatePosAndVelocity(dt, track);
             //ship.updateDynamicUniforms(view_transform);
         }
 

@@ -48,7 +48,6 @@ public:
         num_vertices = 36;        
     }
 
-
     void changeLength(const int side_num, const float amount)
     {
         // TODO: clamp to minimum lengths
@@ -124,14 +123,6 @@ public:
         glBindVertexArray(0);
     }
 
-    void drawShader(const GLuint shader)
-    {
-        glBindVertexArray(vao);
-        glUseProgram(shader);
-        glDrawArrays(GL_TRIANGLES, 0, num_vertices);
-        glBindVertexArray(0);
-    }
-    
     Vec3 getSideNormal(const int side_num)
     {
         switch(side_num)
