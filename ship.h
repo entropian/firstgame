@@ -100,9 +100,9 @@ public:
             new_bbox.min += dp;
             new_bbox.max += dp;
         }
-        /*
-        bool opposing_axis[3];
-        int collided = track.bboxCollideWithTrack(colliding_boxes, opposing_axis, new_bbox);
+
+        int collided = track.bboxCollideWithTrack(colliding_boxes, new_bbox);
+        //printf("collided %d\n", collided);
 
         int hit_dir = -1;
         float overlap_time = 0.0f;
@@ -111,6 +111,7 @@ public:
             Box* track_box = colliding_boxes[i];
             int tmp_hit_dir;
             float tmp_overlap_time = new_bbox.calcOverlapTime(tmp_hit_dir, track_box, velocity);
+            
             if(tmp_overlap_time > overlap_time)
             {
                 overlap_time = tmp_overlap_time;
@@ -118,18 +119,21 @@ public:
             }
         }
 
-        if(collided > 0)
+        //if(collided > 0)
         {
             dp = velocity * (dt - overlap_time);
             bbox.min += dp;
             bbox.max += dp;
             //pos += dp;
-            velocity[hit_dir] = 0.0f;
+            if(overlap_time > 0.0f)
+            {
+                velocity[hit_dir] = 0.0f;
+            }
         }
-        */
+
         Mat4 displacement = Mat4::makeTranslation(dp);
-        printf("dp %f, %f, %f\n", dp[0], dp[1], dp[2]);
-        displacement.print();
+        //printf("dp %f, %f, %f\n", dp[0], dp[1], dp[2]);
+        //displacement.print();
         transform = displacement * transform;
     }
     void draw();

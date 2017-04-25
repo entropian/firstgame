@@ -127,7 +127,6 @@ void calcShipVelocity(Ship& ship, int accel_states[3])
     {
         if(accel_states[2] == -1)
         {
-            printf("not 0 positive\n");
             // Accelerating in the same direction as ship motion
             ship.velocity[2] = -MAX_Z_VELOCITY;
         }else if(accel_states[2] == 1)
@@ -159,7 +158,6 @@ void calcShipVelocity(Ship& ship, int accel_states[3])
         if(accel_states[2] == -1)
         {
             // Forward
-            printf("0 positive\n");
             ship.velocity[2] = -MAX_Z_VELOCITY;
         }else if(accel_states[2] == 1)
         {
@@ -341,9 +339,9 @@ int main()
     Mat4 normal_transform = (transform.inverse()).transpose();
 
     // Track stuff
-
     Track track;
     //track.addBox(Box(Vec3(-10.0f, -0.5f, -100.0f), Vec3(10.0f, 0.0f, 10.0f)));
+    track.addBox(Box(Vec3(-5.0f, -4.0f, -25.0f), Vec3(5.0f, 4.0f, -20.0f)));
     track.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
 
 
@@ -441,10 +439,9 @@ int main()
             int accel_states[3];
             calcShipAccelState(accel_states, g_input);
             calcShipVelocity(ship, accel_states);
-            printf("accel_states: %d, %d, %d\n", accel_states[0], accel_states[1], accel_states[2]);
-            printf("velocity: %f, %f, %f\n", ship.velocity[0], ship.velocity[1], ship.velocity[2]);
+            //printf("accel_states: %d, %d, %d\n", accel_states[0], accel_states[1], accel_states[2]);
+            //printf("velocity: %f, %f, %f\n", ship.velocity[0], ship.velocity[1], ship.velocity[2]);
             ship.updatePosAndVelocity(dt, track);
-            //ship.updateDynamicUniforms(view_transform);
         }
 
         // Update view transform in shaders        
@@ -452,8 +449,8 @@ int main()
         //ship.setViewTransform(view_transform);
         ship.updateDynamicUniforms(view_transform);
         ship.draw();
-        //track.setViewTransform(view_transform);
-        //track.draw();
+        track.setViewTransform(view_transform);
+        track.draw();
 
         //ImGui::Render();
 		glfwSwapBuffers(window); // Takes about 0.017 sec or 1/60 sec
