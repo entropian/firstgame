@@ -207,3 +207,111 @@ void Ship::draw()
     glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }
+
+void Ship::updatePosAndVelocity(const float dt, Track& track)
+{
+    Vec3 dp;
+    BBox new_bbox(bbox);
+    if(velocity[0] != 0.0f || velocity[1] != 0.0f || velocity[2] != 0.0f)
+    {
+        dp = velocity * dt;
+        new_bbox.min += dp;
+        new_bbox.max += dp;
+    }
+
+    int collided = track.bboxCollideWithTrack(colliding_boxes, new_bbox);
+    //for(int i = 0; collided > 0 && i < 2; i++)
+    while(collided > 0)
+    {
+        int hit_dir = -1;
+        float overlap_time = FLT_MAX;
+        for(int i = 0; i < collided; i++)
+        {
+            Box* track_box = colliding_boxes[i];
+            int tmp_hit_dir;
+            float tmp_overlap_time = new_bbox.calcOverlapTime(tmp_hit_dir, track_box, velocity);
+            
+            if(tmp_overlap_time < overlap_time)
+            {
+                overlap_time = tmp_overlap_time;
+                hit_dir = tmp_hit_dir;
+            }
+        }
+        if(overlap_time < FLT_MAX)
+        {
+            printf("dt %f\n", dt);
+            printf("overlap_time %f\n", overlap_time);
+            dp = velocity * (dt - overlap_time - (dt * 0.05f));
+            velocity[hit_dir] = 0.0f;
+            dp += velocity * (overlap_time + (dt * 0.05f));
+        }
+        new_bbox.min = bbox.min + dp;
+        new_bbox.max = bbox.max + dp;
+        collided = track.bboxCollideWithTrack(colliding_boxes, new_bbox);
+    }
+    bbox.min += dp;
+    bbox.max += dp;
+    Mat4 displacement = Mat4::makeTranslation(dp);
+    transform = displacement * transform;
+}
+
+void Ship::calcVelocity(int accel_states[3])
+{
+    // TODO: velocity oscillates around 0    
+    // Z velocity
+    // Ship going "forward"
+    if(velocity[2] < 0.0f)
+    {
+        if(accel_states[2] == -1)
+        {
+            // Accelerating in the same direction as ship motion
+            velocity[2] = -MAX_Z_VELOCITY;
+        }else if(accel_states[2] == 1)
+        {
+            // Acclerating in the opposite direction as ship motion
+            velocity[2] += 5.0f;
+        }else
+        {
+            // Slowing down to 0
+            velocity[2] += 3.0f;
+        }
+    }else if(velocity[2] > 0.0f)
+    {
+        if(accel_states[2] == -1)
+        {
+            // Accelerating in the opposite direction as ship motion
+            velocity[2] -= 5.0;
+        }else if(accel_states[2] == 1)
+        {
+            // Acclerating in the same direction as ship motion
+            velocity[2] = MAX_Z_VELOCITY;
+        }else
+        {
+            // Slowing down to 0
+            velocity[2] -= 3.0f;
+        }        
+    }else if(velocity[2] == 0)
+    {
+        if(accel_states[2] == -1)
+        {
+            // Forward
+            velocity[2] = -MAX_Z_VELOCITY;
+        }else if(accel_states[2] == 1)
+        {
+            // Backward
+            velocity[2] = MAX_Z_VELOCITY;
+        }
+    }
+
+    // X velocity
+    if(accel_states[0] == -1)
+    {
+        velocity[0] = -MAX_X_VELOCITY;
+    }else if(accel_states[0] == 1)
+    {
+        velocity[0] = MAX_X_VELOCITY;
+    }else if(accel_states[0] == 0)
+    {
+        velocity[0] = 0;
+    }
+}

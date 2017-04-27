@@ -68,14 +68,6 @@ struct Input
         q = 0;
     }
 };
-void initInput(Input& input)
-{
-    input.w = 0;
-    input.a = 0;
-    input.s = 0;
-    input.d = 0;
-    input.q = 0;
-}
 Input g_input;
 
 void calcShipAccelState(int accel_states[3], Input& input)
@@ -115,69 +107,6 @@ void calcShipAccelState(int accel_states[3], Input& input)
     }
     // TODO: y
     accel_states[1] = 0;
-}
-
-const float MAX_Z_VELOCITY = 20.0f;
-const float MAX_X_VELOCITY = 5.0f;
-void calcShipVelocity(Ship& ship, int accel_states[3])
-{
-    // TODO: velocity oscillates around 0    
-    // Z velocity
-    // Ship going "forward"
-    if(ship.velocity[2] < 0.0f)
-    {
-        if(accel_states[2] == -1)
-        {
-            // Accelerating in the same direction as ship motion
-            ship.velocity[2] = -MAX_Z_VELOCITY;
-        }else if(accel_states[2] == 1)
-        {
-            // Acclerating in the opposite direction as ship motion
-            ship.velocity[2] += 5.0f;
-        }else
-        {
-            // Slowing down to 0
-            ship.velocity[2] += 3.0f;
-        }
-    }else if(ship.velocity[2] > 0.0f)
-    {
-        if(accel_states[2] == -1)
-        {
-            // Accelerating in the opposite direction as ship motion
-            ship.velocity[2] -= 5.0;
-        }else if(accel_states[2] == 1)
-        {
-            // Acclerating in the same direction as ship motion
-            ship.velocity[2] = MAX_Z_VELOCITY;
-        }else
-        {
-            // Slowing down to 0
-            ship.velocity[2] -= 3.0f;
-        }        
-    }else if(ship.velocity[2] == 0)
-    {
-        if(accel_states[2] == -1)
-        {
-            // Forward
-            ship.velocity[2] = -MAX_Z_VELOCITY;
-        }else if(accel_states[2] == 1)
-        {
-            // Backward
-            ship.velocity[2] = MAX_Z_VELOCITY;
-        }
-    }
-
-    // X velocity
-    if(accel_states[0] == -1)
-    {
-        ship.velocity[0] = -MAX_X_VELOCITY;
-    }else if(accel_states[0] == 1)
-    {
-        ship.velocity[0] = MAX_X_VELOCITY;
-    }else if(accel_states[0] == 0)
-    {
-        ship.velocity[0] = 0;
-    }
 }
 
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -452,7 +381,7 @@ int main()
             // Update ship velocity based on keyboard input
             int accel_states[3];
             calcShipAccelState(accel_states, g_input);
-            calcShipVelocity(ship, accel_states);
+            ship.calcVelocity(accel_states);
             //printf("accel_states: %d, %d, %d\n", accel_states[0], accel_states[1], accel_states[2]);
             //printf("velocity: %f, %f, %f\n", ship.velocity[0], ship.velocity[1], ship.velocity[2]);
             ship.updatePosAndVelocity(dt, track);
