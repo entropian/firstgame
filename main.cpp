@@ -123,6 +123,7 @@ void calcShipVelocity(Ship& ship, int accel_states[3])
 {
     // TODO: velocity oscillates around 0    
     // Z velocity
+    // Ship going "forward"
     if(ship.velocity[2] < 0.0f)
     {
         if(accel_states[2] == -1)
@@ -153,7 +154,7 @@ void calcShipVelocity(Ship& ship, int accel_states[3])
             // Slowing down to 0
             ship.velocity[2] -= 3.0f;
         }        
-    }else
+    }else if(ship.velocity[2] == 0)
     {
         if(accel_states[2] == -1)
         {
@@ -164,6 +165,18 @@ void calcShipVelocity(Ship& ship, int accel_states[3])
             // Backward
             ship.velocity[2] = MAX_Z_VELOCITY;
         }
+    }
+
+    // X velocity
+    if(accel_states[0] == -1)
+    {
+        ship.velocity[0] = -MAX_X_VELOCITY;
+    }else if(accel_states[0] == 1)
+    {
+        ship.velocity[0] = MAX_X_VELOCITY;
+    }else if(accel_states[0] == 0)
+    {
+        ship.velocity[0] = 0;
     }
 }
 
@@ -341,7 +354,8 @@ int main()
     // Track stuff
     Track track;
     //track.addBox(Box(Vec3(-10.0f, -0.5f, -100.0f), Vec3(10.0f, 0.0f, 10.0f)));
-    track.addBox(Box(Vec3(-5.0f, -4.0f, -25.0f), Vec3(5.0f, 4.0f, -20.0f)));
+    //track.addBox(Box(Vec3(-5.0f, -4.0f, -25.0f), Vec3(5.0f, 4.0f, -20.0f)));
+    track.addBox(Box(Vec3(1.0f, -4.0f, -10.0f), Vec3(5.0f, 4.0f, -5.0f)));
     track.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
 
 

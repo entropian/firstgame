@@ -102,38 +102,38 @@ public:
         }
 
         int collided = track.bboxCollideWithTrack(colliding_boxes, new_bbox);
-        //printf("collided %d\n", collided);
-
-        int hit_dir = -1;
-        float overlap_time = 0.0f;
-        for(int i = 0; i < collided; i++)
+        //for(int i = 0; collided > 0 && i < 2; i++)
+        while(collided > 0)
         {
-            Box* track_box = colliding_boxes[i];
-            int tmp_hit_dir;
-            float tmp_overlap_time = new_bbox.calcOverlapTime(tmp_hit_dir, track_box, velocity);
+            int hit_dir = -1;
+            float overlap_time = FLT_MAX;
+            for(int i = 0; i < collided; i++)
+            {
+                Box* track_box = colliding_boxes[i];
+                int tmp_hit_dir;
+                float tmp_overlap_time = new_bbox.calcOverlapTime(tmp_hit_dir, track_box, velocity);
             
-            if(tmp_overlap_time > overlap_time)
-            {
-                overlap_time = tmp_overlap_time;
-                hit_dir = tmp_hit_dir;
+                if(tmp_overlap_time < overlap_time)
+                {
+                    overlap_time = tmp_overlap_time;
+                    hit_dir = tmp_hit_dir;
+                }
             }
-        }
-
-        //if(collided > 0)
-        {
-            dp = velocity * (dt - overlap_time);
-            bbox.min += dp;
-            bbox.max += dp;
-            //pos += dp;
-            if(overlap_time > 0.0f)
+            if(overlap_time < FLT_MAX)
             {
+                printf("dt %f\n", dt);
+                printf("overlap_time %f\n", overlap_time);
+                dp = velocity * (dt - overlap_time - (dt * 0.05f));
                 velocity[hit_dir] = 0.0f;
+                dp += velocity * (overlap_time + (dt * 0.05f));
             }
+            new_bbox.min = bbox.min + dp;
+            new_bbox.max = bbox.max + dp;
+            collided = track.bboxCollideWithTrack(colliding_boxes, new_bbox);
         }
-
+        bbox.min += dp;
+        bbox.max += dp;
         Mat4 displacement = Mat4::makeTranslation(dp);
-        //printf("dp %f, %f, %f\n", dp[0], dp[1], dp[2]);
-        //displacement.print();
         transform = displacement * transform;
     }
     void draw();
