@@ -14,6 +14,7 @@ public:
     void setStaticUniforms(const Mat4& proj_transform, const Vec3& dir_light_1, const Vec3& dir_light_2);
     void setViewTransform(const Mat4& view_transform);
     void updateDynamicUniforms(const Mat4& view_transform);
+    void move(const Vec3& v);
     bool bboxCollide(const BBox& bbox) const;
     BBox getBBox();    
     void updatePosAndVelocity(const float dt, Track& track);

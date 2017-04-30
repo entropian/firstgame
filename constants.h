@@ -19,5 +19,8 @@ const float HUGEVALUE = 1.0E10;
 
 const int NANO_SECONDS_IN_SEC = 1000000000;
 
+// Ship velocity constants
 const float MAX_Z_VELOCITY = 20.0f;
 const float MAX_X_VELOCITY = 5.0f;
+const float MAX_Y_DOWNWARD_VELOCITY = -20.0f;
+const float Y_JUMP_VELOCITY = 20.0f;

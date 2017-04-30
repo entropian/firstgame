@@ -1,9 +1,9 @@
 /*
   TODO:
-  add translation to ship
+  solve when track and ship are initlized to be colliding
+  
   make the main game loop timestep based
   make ship velocity work with timestep
-  move ship scale into class itself
   add some kind of grid for track editing
   lookat for camera
  */
@@ -50,12 +50,19 @@ float ship_length = 0.0f;
 unsigned int g_game_mode = 0;
 
 struct Input
-{    
+{
+    // The first group of variables are used in a sort of polling manner. In every frame,
+    // they will be checked for their current state. jump_request on the other hand is set to true
+    // when the jump key is pressed, and is independent of the current state of the jump key. It will
+    // be set to false when the jump request is processed. Currently, only calcShipAccelState() can set it
+    // to false.
     int w;
     int a;
     int s;
     int d;
     int q;
+
+    bool jump_request;
 
     unsigned int left_click;
     unsigned int right_click;
@@ -66,6 +73,7 @@ struct Input
         s = 0;
         d = 0;
         q = 0;
+        jump_request = false;
     }
 };
 Input g_input;
@@ -105,8 +113,15 @@ void calcShipAccelState(int accel_states[3], Input& input)
             accel_states[0] = 1;
         }
     }
-    // TODO: y
-    accel_states[1] = 0;
+
+    if(input.jump_request)
+    {
+        accel_states[1] = 1;
+        input.jump_request = false;
+    }else
+    {
+        accel_states[1] = -1;
+    }
 }
 
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -134,6 +149,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         case GLFW_KEY_Q:
         {
             g_input.q = 1;
+        } break;
+        case GLFW_KEY_SPACE:
+        {
+            g_input.jump_request = true;
         } break;
         }
     }else if(action == GLFW_RELEASE)
@@ -274,7 +293,7 @@ int main()
     //Mat4 ship_normal_transform = ((view_transform * model.inverse())).transpose();
     Ship ship;
     ship.setStaticUniforms(proj_transform, dir_light_1, dir_light_2);
-
+    ship.move(Vec3(0.0f, 2.0f, 0.0f));
 
     // Box transforms
     Mat4 transform = view_transform;
@@ -282,7 +301,8 @@ int main()
 
     // Track stuff
     Track track;
-    //track.addBox(Box(Vec3(-10.0f, -0.5f, -100.0f), Vec3(10.0f, 0.0f, 10.0f)));
+    //track.addBox(Box(Vec3(-10.0f, -2.5f, -100.0f), Vec3(10.0f, -2.0f, 10.0f)));
+    track.addBox(Box(Vec3(-10.0f, -2.5f, -100.0f), Vec3(10.0f, -2.0f, 10.0f)));
     //track.addBox(Box(Vec3(-5.0f, -4.0f, -25.0f), Vec3(5.0f, 4.0f, -20.0f)));
     track.addBox(Box(Vec3(1.0f, -4.0f, -10.0f), Vec3(5.0f, 4.0f, -5.0f)));
     track.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);

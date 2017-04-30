@@ -220,8 +220,7 @@ void Ship::updatePosAndVelocity(const float dt, Track& track)
     }
 
     int collided = track.bboxCollideWithTrack(colliding_boxes, new_bbox);
-    //for(int i = 0; collided > 0 && i < 2; i++)
-    while(collided > 0)
+    for(int i = 0; collided > 0 && i < 3; i++)
     {
         int hit_dir = -1;
         float overlap_time = FLT_MAX;
@@ -255,6 +254,7 @@ void Ship::updatePosAndVelocity(const float dt, Track& track)
     transform = displacement * transform;
 }
 
+// TODO: make accleration time based instead of frame based
 void Ship::calcVelocity(int accel_states[3])
 {
     // TODO: velocity oscillates around 0    
@@ -314,4 +314,25 @@ void Ship::calcVelocity(int accel_states[3])
     {
         velocity[0] = 0;
     }
+
+    // Y velocity
+    if(accel_states[1] == -1)
+    {
+        velocity[1] -= 2.0f;
+        if(velocity[1] < MAX_Y_DOWNWARD_VELOCITY)
+        {
+            velocity[1] = MAX_Y_DOWNWARD_VELOCITY;
+        }
+    }else if(accel_states[1] == 1)
+    {
+        velocity[1] = Y_JUMP_VELOCITY;
+    }
+}
+
+void Ship::move(const Vec3& v)
+{
+    Mat4 translation = Mat4::makeTranslation(v);
+    transform = translation * transform;
+    bbox.min += v;
+    bbox.max += v;
 }
