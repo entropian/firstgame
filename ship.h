@@ -32,5 +32,6 @@ public:
     BBox bbox;
     Box* colliding_boxes[24]; // Assuming that each side of the space can collide with up to 4 boxes
     Vec3 velocity;
-    Mat4 transform;    
+    Mat4 transform;
+    bool grounded;
 };

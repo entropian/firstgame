@@ -144,6 +144,8 @@ Ship::Ship()
 
     glUseProgram(0);
     glBindVertexArray(0);
+
+    grounded = false;
 }
 
 Ship::~Ship()
@@ -242,6 +244,10 @@ void Ship::updatePosAndVelocity(const float dt, Track& track)
             dp = velocity * (dt - overlap_time - (dt * 0.05f));
             velocity[hit_dir] = 0.0f;
             dp += velocity * (overlap_time + (dt * 0.05f));
+            if(hit_dir == 1)
+            {
+                grounded = true;
+            }
         }
         new_bbox.min = bbox.min + dp;
         new_bbox.max = bbox.max + dp;
@@ -322,9 +328,10 @@ void Ship::calcVelocity(int accel_states[3])
         {
             velocity[1] = MAX_Y_DOWNWARD_VELOCITY;
         }
-    }else if(accel_states[1] == 1)
+    }else if(accel_states[1] == 1 && grounded)
     {
         velocity[1] = Y_JUMP_VELOCITY;
+        grounded = false;
     }
 }
 
