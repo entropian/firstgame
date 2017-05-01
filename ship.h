@@ -20,6 +20,7 @@ public:
     void updatePosAndVelocity(const float dt, Track& track);
     void calcVelocity(int accel_states[3]);
     void draw();
+    Vec3 getPos() const;
 //private:
     GLuint vao, vbo, ibo, shader_program;
     // Texture handles

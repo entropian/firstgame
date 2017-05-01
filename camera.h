@@ -95,6 +95,25 @@ public:
         return ray;
     }
 
+    void setPosRelativeToShip(const Ship& ship)
+    {
+        Vec3 ship_pos = ship.getPos();
+        Vec3 cam_pos(translation(0, 3), translation(1, 3), translation(2, 3));
+        Vec3 displacement = ship_pos - cam_pos;
+        displacement[0] = 0.0f;
+        displacement[1] = 0.0f;
+        const float cam_to_ship_z_dist = 5.0f;
+        displacement[2] += cam_to_ship_z_dist;
+
+        for(int i = 0; i < 3; i++)
+        {
+            // TODO: make translation a Vec3
+            translation(i, 3) += displacement[i];
+            camera_transform(i, 3) += displacement[i];
+            view_transform = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 1.0f)) * camera_transform.inverse();
+        }
+    }
+
     Mat4 getViewTransform()
     {
         return view_transform;

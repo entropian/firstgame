@@ -178,6 +178,7 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         case GLFW_KEY_Q:
         {
             g_input.q = 0;
+            EXIT = true;
         } break;
         }
     }
@@ -397,14 +398,12 @@ int main()
         {
             // Process input
             // Update ship position and velocity based on velocity from last frame
-            //ship.updatePosAndVelocity(dt, track);
             // Update ship velocity based on keyboard input
             int accel_states[3];
             calcShipAccelState(accel_states, g_input);
             ship.calcVelocity(accel_states);
-            //printf("accel_states: %d, %d, %d\n", accel_states[0], accel_states[1], accel_states[2]);
-            //printf("velocity: %f, %f, %f\n", ship.velocity[0], ship.velocity[1], ship.velocity[2]);
             ship.updatePosAndVelocity(dt, track);
+            camera.setPosRelativeToShip(ship);
         }
 
         // Update view transform in shaders        

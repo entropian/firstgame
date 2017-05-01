@@ -228,8 +228,7 @@ void Ship::updatePosAndVelocity(const float dt, Track& track)
         {
             Box* track_box = colliding_boxes[i];
             int tmp_hit_dir;
-            float tmp_overlap_time = new_bbox.calcOverlapTime(tmp_hit_dir, track_box, velocity);
-            
+            float tmp_overlap_time = new_bbox.calcOverlapTime(tmp_hit_dir, track_box, velocity);            
             if(tmp_overlap_time < overlap_time)
             {
                 overlap_time = tmp_overlap_time;
@@ -238,8 +237,8 @@ void Ship::updatePosAndVelocity(const float dt, Track& track)
         }
         if(overlap_time < FLT_MAX)
         {
-            printf("dt %f\n", dt);
-            printf("overlap_time %f\n", overlap_time);
+            //printf("dt %f\n", dt);
+            //printf("overlap_time %f\n", overlap_time);
             dp = velocity * (dt - overlap_time - (dt * 0.05f));
             velocity[hit_dir] = 0.0f;
             dp += velocity * (overlap_time + (dt * 0.05f));
@@ -318,7 +317,7 @@ void Ship::calcVelocity(int accel_states[3])
     // Y velocity
     if(accel_states[1] == -1)
     {
-        velocity[1] -= 2.0f;
+        velocity[1] -= 1.5f;
         if(velocity[1] < MAX_Y_DOWNWARD_VELOCITY)
         {
             velocity[1] = MAX_Y_DOWNWARD_VELOCITY;
@@ -335,4 +334,9 @@ void Ship::move(const Vec3& v)
     transform = translation * transform;
     bbox.min += v;
     bbox.max += v;
+}
+
+Vec3 Ship::getPos() const
+{
+    return Vec3(transform(0, 3), transform(1, 3), transform(2, 3));
 }
