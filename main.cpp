@@ -47,7 +47,12 @@ float ship_length = 0.0f;
 // Game mode
 // 0 = play mode
 // 1 = edit mode
-unsigned int g_game_mode = 0;
+enum GameMode
+{
+    EDITOR,
+    PLAY
+};
+GameMode g_game_mode = PLAY;
 
 struct Input
 {
@@ -175,6 +180,16 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             g_input.d = 0;
         } break;
+        case GLFW_KEY_M:
+        {
+            if(g_game_mode == PLAY)
+            {
+                g_game_mode = EDITOR;
+            }else if(g_game_mode == EDITOR)
+            {
+                g_game_mode = PLAY;
+            }
+        } break;
         case GLFW_KEY_Q:
         {
             g_input.q = 0;
@@ -290,8 +305,7 @@ int main()
     Mat4 view_transform = camera.getViewTransform();
 
 
-    // Ship transforms
-    //Mat4 ship_normal_transform = ((view_transform * model.inverse())).transpose();
+    // Ship stuff
     Ship ship;
     ship.setStaticUniforms(proj_transform, dir_light_1, dir_light_2);
     ship.move(Vec3(0.0f, 2.0f, 0.0f));
@@ -307,19 +321,6 @@ int main()
     //track.addBox(Box(Vec3(-5.0f, -4.0f, -25.0f), Vec3(5.0f, 4.0f, -20.0f)));
     track.addBox(Box(Vec3(1.0f, -4.0f, -10.0f), Vec3(5.0f, 4.0f, -5.0f)));
     track.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
-
-
-    // Box
-    Vec3 min(-0.5f, -0.5f, -4.0f);
-    Vec3 max(0.5f, 0.5f, -2.0f);
-    Vec3 center = (max - min) * 0.5 + min;
-    Box box(min, max);    
-    //track.addBox(box);
-
-    //std::vector<Box> boxes;
-    //boxes.push_back(box);
-
-
 
     // IMGUI stuff
     bool show_test_window = true;
@@ -351,8 +352,11 @@ int main()
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        if(g_game_mode == 1)
+        if(g_game_mode == EDITOR)
         {
+            // TODOS
+            // Camera placement
+            
             if(!left_clicking && g_left_clicking)
             {
                 float click_x, click_y;
@@ -394,11 +398,8 @@ int main()
                 g_box_unmodded = Box();
                 left_clicking = false;
             }
-        }else if(g_game_mode == 0)
+        }else if(g_game_mode == PLAY)
         {
-            // Process input
-            // Update ship position and velocity based on velocity from last frame
-            // Update ship velocity based on keyboard input
             int accel_states[3];
             calcShipAccelState(accel_states, g_input);
             ship.calcVelocity(accel_states);
@@ -408,7 +409,6 @@ int main()
 
         // Update view transform in shaders        
         view_transform = camera.getViewTransform();
-        //ship.setViewTransform(view_transform);
         ship.updateDynamicUniforms(view_transform);
         ship.draw();
         track.setViewTransform(view_transform);

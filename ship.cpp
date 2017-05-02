@@ -279,6 +279,10 @@ void Ship::calcVelocity(int accel_states[3])
         {
             // Slowing down to 0
             velocity[2] += 3.0f;
+            if(velocity[2] >= 0.0f)
+            {
+                velocity[2] = 0.0f;
+            }
         }
     }else if(velocity[2] > 0.0f)
     {
@@ -294,6 +298,10 @@ void Ship::calcVelocity(int accel_states[3])
         {
             // Slowing down to 0
             velocity[2] -= 3.0f;
+            if(velocity[2] < 0.0f)
+            {
+                velocity[2] = 0.0f;
+            }
         }        
     }else if(velocity[2] == 0)
     {
