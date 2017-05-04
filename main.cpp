@@ -25,6 +25,7 @@
 #include "camera.h"
 #include "track.h"
 #include "globalclock.h"
+#include "linegrid.h"
 
 bool EXIT = false;
 
@@ -305,7 +306,8 @@ int main()
     Mat4 view_transform = camera.getViewTransform();
 
 
-    // Ship stuff
+    // Ship transforms
+    //Mat4 ship_normal_transform = ((view_transform * model.inverse())).transpose();
     Ship ship;
     ship.setStaticUniforms(proj_transform, dir_light_1, dir_light_2);
     ship.move(Vec3(0.0f, 2.0f, 0.0f));
@@ -321,6 +323,18 @@ int main()
     //track.addBox(Box(Vec3(-5.0f, -4.0f, -25.0f), Vec3(5.0f, 4.0f, -20.0f)));
     track.addBox(Box(Vec3(1.0f, -4.0f, -10.0f), Vec3(5.0f, 4.0f, -5.0f)));
     track.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
+
+    // Line grid
+    LineGrid line_grid(1.0f, 0.0f, 500, view_transform, proj_transform);
+
+
+    // Box
+    Vec3 min(-0.5f, -0.5f, -4.0f);
+    Vec3 max(0.5f, 0.5f, -2.0f);
+    Vec3 center = (max - min) * 0.5 + min;
+    Box box(min, max);    
+    //track.addBox(box);
+
 
     // IMGUI stuff
     bool show_test_window = true;
@@ -400,6 +414,9 @@ int main()
             }
         }else if(g_game_mode == PLAY)
         {
+            // Process input
+            // Update ship position and velocity based on velocity from last frame
+            // Update ship velocity based on keyboard input
             int accel_states[3];
             calcShipAccelState(accel_states, g_input);
             ship.calcVelocity(accel_states);
@@ -409,10 +426,13 @@ int main()
 
         // Update view transform in shaders        
         view_transform = camera.getViewTransform();
+        //ship.setViewTransform(view_transform);
         ship.updateDynamicUniforms(view_transform);
         ship.draw();
         track.setViewTransform(view_transform);
         track.draw();
+        line_grid.setViewTransform(view_transform);
+        line_grid.draw();
 
         //ImGui::Render();
 		glfwSwapBuffers(window); // Takes about 0.017 sec or 1/60 sec
