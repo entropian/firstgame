@@ -114,42 +114,46 @@ public:
         }
     }
 
-    Mat4 getViewTransform()
+    Mat4 getViewTransform() const
     {
         return view_transform;
     }
     
-    Mat4 getCameraTransform()
+    Mat4 getCameraTransform() const
     {
         return camera_transform;
     }
 
-    Mat4 getOrientation()
+    Mat4 getOrientation() const
     {
         return orientation;
     }
 
-    Mat4 getTranslation()
+    Mat4 getTranslation() const
     {
         return translation;
     }
 
-private:
-    Vec3 getXAxis()
+    Vec3 getPosition() const
+    {
+        return Vec3(translation(0, 3), translation(1, 3), translation(2, 3));
+    }
+
+    Vec3 getXAxis() const
     {
         return Vec3(orientation(0, 0), orientation(1, 0), orientation(2, 0));
     }
 
-    Vec3 getYAxis()
+    Vec3 getYAxis() const
     {
         return Vec3(orientation(0, 1), orientation(1, 1), orientation(2, 1));
     }
 
-    Vec3 getZAxis()
+    Vec3 getZAxis() const
     {
         return Vec3(orientation(0, 2), orientation(1, 2), orientation(2, 2));
     }
-
+private:
     Mat4 view_transform;
     Mat4 camera_transform;
     Mat4 orientation;

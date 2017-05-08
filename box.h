@@ -29,6 +29,20 @@ public:
         glBindVertexArray(0);        
         num_vertices = 36;
     }
+
+    Box(const Vec3& center, const float width, const float height, const float length)
+    {
+        float half_width = fabs(width) * 0.5f;
+        float half_height = fabs(height) * 0.5f;
+        float half_length = fabs(length) * 0.5f;
+
+        Vec3 max(half_width, half_height, half_length);
+        Vec3 min = -max;
+        max += center;
+        min += center;
+        *this = Box(min, max);
+    }
+
     void setAttributesToShader(GLuint shader)
     {
         // Setting attributes

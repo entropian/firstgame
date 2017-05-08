@@ -6,7 +6,7 @@
   make ship velocity work with timestep
   add some kind of grid for track editing
   lookat for camera
- */
+*/
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -67,20 +67,22 @@ struct Input
     int s;
     int d;
     int q;
+    int n;
 
     bool jump_request;
 
     unsigned int left_click;
     unsigned int right_click;
     Input()
-    {
-        w = 0;
-        a = 0;
-        s = 0;
-        d = 0;
-        q = 0;
-        jump_request = false;
-    }
+        {
+            w = 0;
+            a = 0;
+            s = 0;
+            d = 0;
+            q = 0;
+            n = 0;
+            jump_request = false;
+        }
 };
 Input g_input;
 
@@ -156,6 +158,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             g_input.q = 1;
         } break;
+        case GLFW_KEY_N:
+        {
+            g_input.n = 1;
+        } break;
         case GLFW_KEY_SPACE:
         {
             g_input.jump_request = true;
@@ -195,6 +201,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             g_input.q = 0;
             EXIT = true;
+        } break;
+        case GLFW_KEY_N:
+        {
+            g_input.n = 0;
         } break;
         }
     }
@@ -344,7 +354,10 @@ int main()
     GlobalClock gclock;
     
     bool left_clicking = false;
+    bool placing_object = false;
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	while (!glfwWindowShouldClose(window) && !EXIT)
 	{        
         glfwPollEvents();
@@ -368,9 +381,38 @@ int main()
 
         if(g_game_mode == EDITOR)
         {
-            // TODOS
-            // Camera placement
+            // TODOS: Camera placement           
+
+            // Process input
             
+            
+            if(placing_object)
+            {
+                if(g_input.n == 0)
+                {
+                    placing_object = false;
+                }
+            }
+            if(!placing_object)
+            {
+                if(g_input.n == 1)
+                {
+                    // Place new box in track
+                    // take camera z axis, move some distance forward, then project it on to the xz plane at y = 0
+                    // make a box there
+                    // NOTE: not sure why camera z axis needs to be flipped
+                    Vec3 camera_z_axis = -camera.getZAxis();
+                    Vec3 camera_pos = camera.getPosition();
+                    const float dist = 5.0f;
+                    Vec3 box_center = camera_z_axis * dist + camera_pos;
+                    box_center[1] = 0.0f;
+                    Box new_box(box_center, 1.0f, 1.0f, 1.0f);
+                    track.addBox(new_box);
+                    placing_object = true;
+                }
+            }
+
+            /*
             if(!left_clicking && g_left_clicking)
             {
                 float click_x, click_y;
@@ -412,6 +454,7 @@ int main()
                 g_box_unmodded = Box();
                 left_clicking = false;
             }
+            */
         }else if(g_game_mode == PLAY)
         {
             // Process input
