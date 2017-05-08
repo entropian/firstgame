@@ -66,6 +66,8 @@ struct Input
     int a;
     int s;
     int d;
+    int r;
+    int f;
     int q;
     int n;
 
@@ -79,6 +81,8 @@ struct Input
             a = 0;
             s = 0;
             d = 0;
+            r = 0;
+            f = 0;
             q = 0;
             n = 0;
             jump_request = false;
@@ -154,6 +158,14 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             g_input.d = 1;
         } break;
+        case GLFW_KEY_R:
+        {
+            g_input.r = 1;
+        } break;
+        case GLFW_KEY_F:
+        {
+            g_input.f = 1;
+        } break;
         case GLFW_KEY_Q:
         {
             g_input.q = 1;
@@ -187,6 +199,14 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             g_input.d = 0;
         } break;
+        case GLFW_KEY_R:
+        {
+            g_input.r = 0;
+        } break;
+        case GLFW_KEY_F:
+        {
+            g_input.f = 0;
+        } break;        
         case GLFW_KEY_M:
         {
             if(g_game_mode == PLAY)
@@ -383,8 +403,32 @@ int main()
         {
             // TODOS: Camera placement           
 
+            const float camera_speed = 10.0f * dt;
             // Process input
-            
+            if(g_input.w == 1)
+            {
+                camera.move(4, camera_speed);
+            }
+            if(g_input.s == 1)
+            {
+                camera.move(5, camera_speed);
+            }
+            if(g_input.a == 1)
+            {
+                camera.move(1, camera_speed);
+            }
+            if(g_input.d == 1)
+            {
+                camera.move(0, camera_speed);
+            }
+            if(g_input.r == 1)
+            {
+                camera.move(2, camera_speed);
+            }
+            if(g_input.f == 1)
+            {
+                camera.move(3, camera_speed);
+            }            
             
             if(placing_object)
             {
