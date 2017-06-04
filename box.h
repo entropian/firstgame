@@ -183,6 +183,7 @@ private:
         Vec3 bottom_right_back(max[0], min[1], min[2]);
 
         std::vector<GLfloat> vertices;
+        // TODO: winding order for backside is wrong
         // Top
         vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);
         vertices.insert(vertices.end(), UP.data, UP.data+3);

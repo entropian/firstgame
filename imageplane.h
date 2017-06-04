@@ -32,6 +32,7 @@ public:
         Ray ret;
         ret.dir[0] = x * m_half_frame_width;
         ret.dir[1] = y * m_half_frame_height;
+        // CULPRIT?
         ret.dir[2] = -1.0f;
         ret.dir = ret.dir.normalize();
         ret.origin = ORIGIN;

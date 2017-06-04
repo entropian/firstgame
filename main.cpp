@@ -32,8 +32,6 @@ bool EXIT = false;
 bool g_left_clicking = false;
 double g_click_xpos = 0.0;
 double g_click_ypos = 0.0;
-double g_cursor_xpos = 0.0;
-double g_cursor_ypos = 0.0;
 float g_aspect_ratio = 0.0f;
 unsigned int g_window_width = 0;
 unsigned int g_window_height = 0;
@@ -73,20 +71,31 @@ struct Input
 
     bool jump_request;
 
+    double cursor_x;
+    double cursor_y;
+    double cursor_movement_x;
+    double cursor_movement_y;
+    bool cursor_moved_last_frame;
+
     unsigned int left_click;
     unsigned int right_click;
     Input()
-        {
-            w = 0;
-            a = 0;
-            s = 0;
-            d = 0;
-            r = 0;
-            f = 0;
-            q = 0;
-            n = 0;
-            jump_request = false;
-        }
+    {
+        w = 0;
+        a = 0;
+        s = 0;
+        d = 0;
+        r = 0;
+        f = 0;
+        q = 0;
+        n = 0;
+        jump_request = false;
+        cursor_x = 0.0;
+        cursor_y = 0.0;
+        cursor_movement_x = 0.0;
+        cursor_movement_y = 0.0;
+        cursor_moved_last_frame = false;
+    }
 };
 Input g_input;
 
@@ -248,8 +257,11 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 
 void cursorPosCallback(GLFWwindow *window, double x, double y)
 {
-    g_cursor_xpos = x;
-    g_cursor_ypos = y;
+    g_input.cursor_movement_x = x - g_input.cursor_x;
+    g_input.cursor_movement_y = y - g_input.cursor_y;
+    g_input.cursor_x = x;
+    g_input.cursor_y = y;
+    g_input.cursor_moved_last_frame = true;
 }
 
 void getNormalizedWindowCoord(float& x, float& y, const unsigned int x_pos, const unsigned int y_pos,
@@ -281,6 +293,7 @@ GLFWwindow* initWindow(unsigned int width, unsigned int height)
 	GLFWwindow *window = glfwCreateWindow(width, height, "firstgame", NULL, NULL);
 	glfwSetWindowPos(window, 600, 100);
 	glfwMakeContextCurrent(window);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// Init GLEW
 	glewExperimental = GL_TRUE;
@@ -335,6 +348,8 @@ int main()
     g_camera_ptr = &camera;
     Mat4 view_transform = camera.getViewTransform();
 
+    printf("1\n");
+    view_transform.print();
 
     // Ship transforms
     //Mat4 ship_normal_transform = ((view_transform * model.inverse())).transpose();
@@ -348,9 +363,7 @@ int main()
 
     // Track stuff
     Track track;
-    //track.addBox(Box(Vec3(-10.0f, -2.5f, -100.0f), Vec3(10.0f, -2.0f, 10.0f)));
     track.addBox(Box(Vec3(-10.0f, -2.5f, -100.0f), Vec3(10.0f, -2.0f, 10.0f)));
-    //track.addBox(Box(Vec3(-5.0f, -4.0f, -25.0f), Vec3(5.0f, 4.0f, -20.0f)));
     track.addBox(Box(Vec3(1.0f, -4.0f, -10.0f), Vec3(5.0f, 4.0f, -5.0f)));
     track.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
 
@@ -359,11 +372,13 @@ int main()
 
 
     // Box
-    Vec3 min(-0.5f, -0.5f, -4.0f);
-    Vec3 max(0.5f, 0.5f, -2.0f);
-    Vec3 center = (max - min) * 0.5 + min;
+    // Positive z side
+    //Vec3 min(-0.5f, -0.5f, 10.0f);
+    //Vec3 max(0.5f, 0.5f, 14.0f);
+    Vec3 min(0.0f, 0.0f, -4.0f);
+    Vec3 max(1.0f, 1.0f, -2.0f);
     Box box(min, max);    
-    //track.addBox(box);
+    track.addBox(box);
 
 
     // IMGUI stuff
@@ -401,6 +416,11 @@ int main()
 
         if(g_game_mode == EDITOR)
         {
+            if(g_input.cursor_moved_last_frame)
+            {
+                camera.turnSideways(g_input.cursor_movement_x);
+                g_input.cursor_moved_last_frame = false;
+            }
             // TODOS: Camera placement           
 
             const float camera_speed = 10.0f * dt;
@@ -456,7 +476,7 @@ int main()
                 }
             }
 
-            /*
+
             if(!left_clicking && g_left_clicking)
             {
                 float click_x, click_y;
@@ -465,6 +485,7 @@ int main()
 
                 // Intersection
                 // TODO: multiple boxes
+                // TODO: picking doesn't work after mode has been switch a couple of times
                 float t = box.rayIntersect(g_box_side, ray);
                 if(t < TMAX)
                 {
@@ -482,11 +503,11 @@ int main()
                 left_clicking = true;
             }else if(left_clicking && g_left_clicking && g_box_ptr)
             {
-                double x_diff = g_cursor_xpos - g_click_xpos;
-                double y_diff = -(g_cursor_ypos - g_click_ypos);
+                double x_diff = g_input.cursor_x - g_click_xpos;
+                double y_diff = -(g_input.cursor_y - g_click_ypos);
                 float x_norm = x_diff / g_window_width * g_aspect_ratio;
                 float y_norm = y_diff / g_window_height;
-                Vec3 cursor_vec = Vec3(g_camera_ptr->getOrientation() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+                Vec3 cursor_vec = Vec3(g_camera_ptr->getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
                 Vec3 box_normal = g_box_ptr->getSideNormal(g_box_side);
                 // TODO: change 0.1f to something dependent on box distance from camera
                 float amount = dot(cursor_vec, box_normal) * 1.0f;
@@ -498,9 +519,10 @@ int main()
                 g_box_unmodded = Box();
                 left_clicking = false;
             }
-            */
+
         }else if(g_game_mode == PLAY)
         {
+            // TODO: reset camera orientation
             // Process input
             // Update ship position and velocity based on velocity from last frame
             // Update ship velocity based on keyboard input
@@ -509,11 +531,11 @@ int main()
             ship.calcVelocity(accel_states);
             ship.updatePosAndVelocity(dt, track);
             camera.setPosRelativeToShip(ship);
+            camera.setEulerAng(Vec3(0, 0, 0));
         }
 
         // Update view transform in shaders        
         view_transform = camera.getViewTransform();
-        //ship.setViewTransform(view_transform);
         ship.updateDynamicUniforms(view_transform);
         ship.draw();
         track.setViewTransform(view_transform);
