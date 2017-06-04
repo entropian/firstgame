@@ -65,7 +65,7 @@ public:
         return boxes.size();
     }
 
-    Box* rayIntersectTrack(int& face, const Ray& ray)
+    Box* rayIntersectTrack(int& face, float& t, const Ray& ray)
     {
         float min_t = TMAX;
         int index = -1, min_face = -1;
@@ -81,6 +81,7 @@ public:
             }
         }
         face = min_face;
+        t = min_t;
         if(index != -1)
         {
             return &(boxes[index]);
@@ -102,28 +103,8 @@ public:
         {
             if(bbox.bboxIntersect(boxes[i]))
             {
-                //printf("track intersecting\n");
-                colliding_boxes[count] = &(boxes[i]);
-                /*
-                Vec3 box_center = (boxes[i].max - boxes[i].min) * 0.5f +
-                    boxes[i].min;
-                Vec3 center_displacement = ship_center - box_center;
 
-                for(int j = 0; j < 3; j++)
-                {
-                    if(center_dir[j] == 0.0f)
-                    {
-                        if(center_displacement[j] != 0.0f)
-                        {
-                            center_dir[j] = center_displacement[j];
-                        }
-                    }
-                    if(center_displacement[j] * center_dir[j] < 0.0f)
-                    {
-                        opposing_axis[j] = true;
-                    }
-                }
-                */
+                colliding_boxes[count] = &(boxes[i]);
                 count++;
             }
         }

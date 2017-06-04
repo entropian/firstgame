@@ -244,13 +244,11 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
     {
         if(action == GLFW_PRESS)
         {
-            g_left_clicking = true;
             g_input.left_click = true;
             glfwGetCursorPos(window, &g_input.click_x, &g_input.click_y);
             std::cout << "xpos: " << g_input.click_x << " ypos: " << g_input.click_y << std::endl;
         }else if(action == GLFW_RELEASE)
         {
-            g_left_clicking = false;
             g_input.left_click = false;
         }
     }else if(button == GLFW_MOUSE_BUTTON_RIGHT)
@@ -493,16 +491,12 @@ int main()
 
                 // Intersection
                 // TODO: multiple boxes
-                float t = box.rayIntersect(g_box_side, ray);
-                if(t < TMAX)
+                float t;
+                g_box_ptr = track.rayIntersectTrack(g_box_side, t, ray);
+                if(g_box_ptr)
                 {
-                    g_box_ptr = &box;
-                    g_box_unmodded = box;
-                }else
-                {
-                    g_box_ptr = nullptr;
-                    g_box_unmodded = Box();
-                }
+                    g_box_unmodded = *g_box_ptr;
+                }                
                 std::cout << "t " << t << std::endl;
                 Vec3 hit_point = ray.origin + ray.dir * t;
                 printf("hit_point: %f, %f, %f\n", hit_point[0], hit_point[1], hit_point[2]); 
