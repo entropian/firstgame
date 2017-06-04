@@ -29,9 +29,6 @@
 
 bool EXIT = false;
 
-bool g_left_clicking = false;
-double g_click_xpos = 0.0;
-double g_click_ypos = 0.0;
 float g_aspect_ratio = 0.0f;
 unsigned int g_window_width = 0;
 unsigned int g_window_height = 0;
@@ -55,11 +52,7 @@ GameMode g_game_mode = PLAY;
 
 struct Input
 {
-    // The first group of variables are used in a sort of polling manner. In every frame,
-    // they will be checked for their current state. jump_request on the other hand is set to true
-    // when the jump key is pressed, and is independent of the current state of the jump key. It will
-    // be set to false when the jump request is processed. Currently, only calcShipAccelState() can set it
-    // to false.
+    // Keyboard
     int w;
     int a;
     int s;
@@ -71,14 +64,18 @@ struct Input
 
     bool jump_request;
 
+    // Mouse
     double cursor_x;
     double cursor_y;
+    double click_x;
+    double click_y;
     double cursor_movement_x;
     double cursor_movement_y;
     bool cursor_moved_last_frame;
 
-    unsigned int left_click;
-    unsigned int right_click;
+    bool left_click;
+    bool right_click;
+    
     Input()
     {
         w = 0;
@@ -95,6 +92,8 @@ struct Input
         cursor_movement_x = 0.0;
         cursor_movement_y = 0.0;
         cursor_moved_last_frame = false;
+        left_click = false;
+        right_click = false;
     }
 };
 Input g_input;
@@ -246,11 +245,22 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
         if(action == GLFW_PRESS)
         {
             g_left_clicking = true;
-            glfwGetCursorPos(window, &g_click_xpos, &g_click_ypos);
-            std::cout << "xpos: " << g_click_xpos << " ypos: " << g_click_ypos << std::endl;
+            g_input.left_click = true;
+            glfwGetCursorPos(window, &g_input.click_x, &g_input.click_y);
+            std::cout << "xpos: " << g_input.click_x << " ypos: " << g_input.click_y << std::endl;
         }else if(action == GLFW_RELEASE)
         {
             g_left_clicking = false;
+            g_input.left_click = false;
+        }
+    }else if(button == GLFW_MOUSE_BUTTON_RIGHT)
+    {
+        if(action == GLFW_PRESS)
+        {
+            g_input.right_click = true;
+        }else if(action == GLFW_RELEASE)
+        {
+            g_input.right_click = false;
         }
     }
 }
@@ -293,7 +303,7 @@ GLFWwindow* initWindow(unsigned int width, unsigned int height)
 	GLFWwindow *window = glfwCreateWindow(width, height, "firstgame", NULL, NULL);
 	glfwSetWindowPos(window, 600, 100);
 	glfwMakeContextCurrent(window);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// Init GLEW
 	glewExperimental = GL_TRUE;
@@ -373,8 +383,6 @@ int main()
 
     // Box
     // Positive z side
-    //Vec3 min(-0.5f, -0.5f, 10.0f);
-    //Vec3 max(0.5f, 0.5f, 14.0f);
     Vec3 min(0.0f, 0.0f, -4.0f);
     Vec3 max(1.0f, 1.0f, -2.0f);
     Box box(min, max);    
@@ -416,7 +424,7 @@ int main()
 
         if(g_game_mode == EDITOR)
         {
-            if(g_input.cursor_moved_last_frame)
+            if(g_input.right_click && g_input.cursor_moved_last_frame)
             {
                 camera.turnSideways(g_input.cursor_movement_x);
                 g_input.cursor_moved_last_frame = false;
@@ -477,15 +485,14 @@ int main()
             }
 
 
-            if(!left_clicking && g_left_clicking)
+            if(!left_clicking && g_input.left_click)
             {
                 float click_x, click_y;
-                getNormalizedWindowCoord(click_x, click_y, g_click_xpos, g_click_ypos, window);
+                getNormalizedWindowCoord(click_x, click_y, g_input.click_x, g_input.click_y, window);
                 Ray ray = camera.calcRayFromScreenCoord(click_x, click_y);
 
                 // Intersection
                 // TODO: multiple boxes
-                // TODO: picking doesn't work after mode has been switch a couple of times
                 float t = box.rayIntersect(g_box_side, ray);
                 if(t < TMAX)
                 {
@@ -501,10 +508,10 @@ int main()
                 printf("hit_point: %f, %f, %f\n", hit_point[0], hit_point[1], hit_point[2]); 
                 std::cout << std::endl;
                 left_clicking = true;
-            }else if(left_clicking && g_left_clicking && g_box_ptr)
+            }else if(left_clicking && g_input.left_click && g_box_ptr)
             {
-                double x_diff = g_input.cursor_x - g_click_xpos;
-                double y_diff = -(g_input.cursor_y - g_click_ypos);
+                double x_diff = g_input.cursor_x - g_input.click_x;
+                double y_diff = -(g_input.cursor_y - g_input.click_y);
                 float x_norm = x_diff / g_window_width * g_aspect_ratio;
                 float y_norm = y_diff / g_window_height;
                 Vec3 cursor_vec = Vec3(g_camera_ptr->getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
@@ -513,7 +520,7 @@ int main()
                 float amount = dot(cursor_vec, box_normal) * 1.0f;
                 *g_box_ptr = g_box_unmodded;
                 g_box_ptr->changeLength(g_box_side, amount);
-            }else if(left_clicking && !g_left_clicking)
+            }else if(left_clicking && !g_input.left_click)
             {
                 g_box_ptr = nullptr;
                 g_box_unmodded = Box();
