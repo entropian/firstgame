@@ -268,10 +268,11 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 
 void cursorPosCallback(GLFWwindow *window, double x, double y)
 {
+    double flipped_y = g_window_height - y;
     g_input.cursor_movement_x = x - g_input.cursor_x;
-    g_input.cursor_movement_y = y - g_input.cursor_y;
+    g_input.cursor_movement_y = flipped_y - g_input.cursor_y;
     g_input.cursor_x = x;
-    g_input.cursor_y = y;
+    g_input.cursor_y = flipped_y;
     g_input.cursor_moved_last_frame = true;
 }
 
@@ -436,7 +437,7 @@ int main()
             
             if(g_input.right_click && g_input.cursor_moved_last_frame)
             {
-                camera.turnSideways(g_input.cursor_movement_x);
+                camera.turn(g_input.cursor_movement_x, g_input.cursor_movement_y);
                 g_input.cursor_moved_last_frame = false;
             }
             const float camera_speed = 10.0f * dt;

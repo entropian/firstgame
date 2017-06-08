@@ -26,24 +26,6 @@ public:
         float z_over_cos_phi = dir[2] / cos_phi;
         float theta = asin(x_over_cos_phi);
         euler_angle[0] = radToDeg(theta);
-
-        /*
-        translation = Mat4::makeTranslation(pos);
-        // OpenGL is right handed
-        Vec3 z = normalize(-dir);
-        Vec3 x = normalize(cross(up_vec, z));
-        Vec3 y = cross(z, x);
-        for(int i = 0; i < 3; i++)
-        {
-            orientation(i, 0) = x[i];
-            orientation(i, 1) = y[i];
-            orientation(i, 2) = z[i];
-        }
-        camera_transform = translation * orientation;
-        // NOTE: it looks like that image plane of the camera is at the origin instead of at z = -1
-        view_transform = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 1.0f)) * camera_transform.inverse();
-        //view_transform = camera_transform.inverse();
-        */
     }
 
     Mat4 lookAt(const Vec3& dir, const Vec3& up_vec, const Vec3& p)
@@ -62,7 +44,7 @@ public:
         return translation * orientation;
     }    
 
-    void eulerAngToCameraAndViewTransform()
+    void updateTransforms()
     {
         // Default euler angle (0, 0, 0) points down negative z axis
         // Roll is not used
@@ -114,20 +96,15 @@ public:
         Vec3 displacement = move_dir * distance;
         for(int i = 0; i < 3; i++)
         {
-            /*
-            translation(i, 3) += displacement[i];
-            camera_transform(i, 3) += displacement[i];
-            view_transform = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 1.0f)) * camera_transform.inverse();
-            */
             pos[i] += displacement[i];
             camera_transform(i, 3) += displacement[i];
         }
         view_transform = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 1.0f)) * camera_transform.inverse();
     }
 
-    void turnSideways(const float degrees)
+    void turn(const float heading, const float pitch)
     {
-        euler_angle[0] += degrees;
+        euler_angle[0] += heading;
         while(euler_angle[0] > 180.0f)
         {
             euler_angle[0] -= 360.0f;
@@ -136,7 +113,16 @@ public:
         {
             euler_angle[0] += 360.0f;
         }
-        eulerAngToCameraAndViewTransform();
+        euler_angle[1] += pitch;
+        if(euler_angle[1] > 89.0f)
+        {
+            euler_angle[1] = 89.0f;
+        }
+        if(euler_angle[1] < -89.0f)
+        {
+            euler_angle[1] = -89.0f;
+        }
+        updateTransforms();
     }
 
     Ray transformRay(const Ray& ray)
@@ -207,7 +193,7 @@ public:
     {
         euler_angle = cam_euler_ang;
         pos = cam_pos;
-        eulerAngToCameraAndViewTransform();
+        updateTransforms();
     }
 
     Vec3 getEulerAng()
