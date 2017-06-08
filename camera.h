@@ -203,9 +203,10 @@ public:
         return Vec3(camera_transform(0, 2), camera_transform(1, 2), camera_transform(2, 2));
     }
 
-    void setEulerAng(const Vec3& v)
+    void setPosAndOrientation(const Vec3& cam_pos, const Vec3& cam_euler_ang)
     {
-        euler_angle = v;
+        euler_angle = cam_euler_ang;
+        pos = cam_pos;
         eulerAngToCameraAndViewTransform();
     }
 

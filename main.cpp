@@ -98,6 +98,8 @@ struct Input
 };
 Input g_input;
 
+bool g_mode_change = false;
+
 void calcShipAccelState(int accel_states[3], Input& input)
 {    
     // 1 is accelerating towards positive
@@ -217,6 +219,7 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         } break;        
         case GLFW_KEY_M:
         {
+            g_mode_change = true;
             if(g_game_mode == PLAY)
             {
                 g_game_mode = EDITOR;
@@ -353,6 +356,7 @@ int main()
     // NOTE: where to put proj_transform?
     Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));
     Camera camera(MINUS_Z, UP, Vec3(0.0f, 1.0f, 4.0f), fov, aspect_ratio);
+    Vec3 editor_camera_pos, editor_camera_euler_ang;
     g_camera_ptr = &camera;
     Mat4 view_transform = camera.getViewTransform();
 
@@ -398,6 +402,7 @@ int main()
     bool placing_object = false;
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
+    // TODO: back of boxes are completely transparent 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	while (!glfwWindowShouldClose(window) && !EXIT)
 	{        
@@ -422,13 +427,18 @@ int main()
 
         if(g_game_mode == EDITOR)
         {
+            if(g_mode_change)
+            {
+                // Changed mode from play to editor
+                camera.setPosAndOrientation(editor_camera_pos, editor_camera_euler_ang);
+                g_mode_change = false;
+            }
+            
             if(g_input.right_click && g_input.cursor_moved_last_frame)
             {
                 camera.turnSideways(g_input.cursor_movement_x);
                 g_input.cursor_moved_last_frame = false;
             }
-            // TODOS: Camera placement           
-
             const float camera_speed = 10.0f * dt;
             // Process input
             if(g_input.w == 1)
@@ -454,7 +464,7 @@ int main()
             if(g_input.f == 1)
             {
                 camera.move(3, camera_speed);
-            }            
+            }
             
             if(placing_object)
             {
@@ -527,12 +537,20 @@ int main()
             // Process input
             // Update ship position and velocity based on velocity from last frame
             // Update ship velocity based on keyboard input
+            if(g_mode_change)
+            {
+                // Last frame was in editor mode
+                // Save editor mode camera pos and orientation
+                editor_camera_pos = camera.getPosition();
+                editor_camera_euler_ang = camera.getEulerAng();
+                camera = Camera();
+                g_mode_change = false;
+            }
             int accel_states[3];
             calcShipAccelState(accel_states, g_input);
             ship.calcVelocity(accel_states);
             ship.updatePosAndVelocity(dt, track);
             camera.setPosRelativeToShip(ship);
-            camera.setEulerAng(Vec3(0, 0, 0));
         }
 
         // Update view transform in shaders        

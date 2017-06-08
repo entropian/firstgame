@@ -20,7 +20,6 @@ public:
     Box(const Vec3& a, const Vec3& b)
         :BBox(a, b)
     {
-        // TODO: figure out the z orientation of boxes
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
         glBindVertexArray(vao);
@@ -183,7 +182,6 @@ private:
         Vec3 bottom_right_back(max[0], min[1], min[2]);
 
         std::vector<GLfloat> vertices;
-        // TODO: winding order for backside is wrong
         // Top
         vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);
         vertices.insert(vertices.end(), UP.data, UP.data+3);
@@ -262,16 +260,16 @@ private:
         // Back
         vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
         vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
-        vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);
-        vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
         vertices.insert(vertices.end(), bottom_right_back.data, bottom_right_back.data+3);
+        vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
+        vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);        
         vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
             
         vertices.insert(vertices.end(), bottom_right_back.data, bottom_right_back.data+3);
         vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
-        vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);
-        vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
         vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);
+        vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
+        vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);        
         vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
 
         glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertices.size(), &(vertices[0]), GL_STATIC_DRAW);
