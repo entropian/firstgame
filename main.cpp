@@ -376,21 +376,11 @@ int main()
 
     // Track stuff
     Track track;
-    track.addBox(Box(Vec3(-10.0f, -2.5f, -100.0f), Vec3(10.0f, -2.0f, 10.0f)));
-    track.addBox(Box(Vec3(1.0f, -4.0f, -10.0f), Vec3(5.0f, 4.0f, -5.0f)));
     track.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
-
+    track.readFromFile("tmp_track.txt");
+    
     // Line grid
     LineGrid line_grid(1.0f, 0.0f, 500, view_transform, proj_transform);
-
-
-    // Box
-    // Positive z side
-    Vec3 min(0.0f, 0.0f, -4.0f);
-    Vec3 max(1.0f, 1.0f, -2.0f);
-    Box box(min, max);    
-    track.addBox(box);
-
 
     // IMGUI stuff
     bool show_test_window = true;
@@ -434,14 +424,16 @@ int main()
                 camera.setPosAndOrientation(editor_camera_pos, editor_camera_euler_ang);
                 g_mode_change = false;
             }
-            
+
+            // Process input
+            // Mouse
             if(g_input.right_click && g_input.cursor_moved_last_frame)
             {
                 camera.turn(g_input.cursor_movement_x, g_input.cursor_movement_y);
                 g_input.cursor_moved_last_frame = false;
             }
             const float camera_speed = 10.0f * dt;
-            // Process input
+            // Keyboard
             if(g_input.w == 1)
             {
                 camera.move(4, camera_speed);
@@ -466,7 +458,7 @@ int main()
             {
                 camera.move(3, camera_speed);
             }
-            
+
             if(placing_object)
             {
                 if(g_input.n == 0)
@@ -492,7 +484,6 @@ int main()
                     placing_object = true;
                 }
             }
-
 
             if(!left_clicking && g_input.left_click)
             {
@@ -534,7 +525,6 @@ int main()
 
         }else if(g_game_mode == PLAY)
         {
-            // TODO: reset camera orientation
             // Process input
             // Update ship position and velocity based on velocity from last frame
             // Update ship velocity based on keyboard input
@@ -554,7 +544,6 @@ int main()
             camera.setPosRelativeToShip(ship);
         }
 
-        // Update view transform in shaders        
         view_transform = camera.getViewTransform();
         ship.updateDynamicUniforms(view_transform);
         ship.draw();

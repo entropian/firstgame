@@ -3,6 +3,7 @@
 #include "ray.h"
 #include <vector>
 #include "vec.h"
+#include <iostream>
 
 class Track
 {
@@ -54,7 +55,7 @@ public:
         glUseProgram(0);
     }
 
-    void addBox(Box box)
+    void addBox(Box& box)
     {
         box.setAttributesToShader(shader_program);
         boxes.push_back(box);
@@ -129,6 +130,57 @@ public:
         glUseProgram(0);
     }
 
+    void print()
+    {
+        for(int i = 0; i < boxes.size(); i++)
+        {
+            boxes[i].min.print();
+            boxes[i].max.print();
+            std::cout << "\n";
+        }
+    }
+
+    void readFromFile(const char* file_name)
+    {
+        std::ifstream input(file_name);
+        float tmp;
+        int i = 0;
+        Vec3 min, max;
+        while(input >> tmp)
+        {
+            if(i < 3)
+            {
+                min[i] = tmp;
+            }else if(i >= 3)
+            {
+                max[i-3] = tmp;
+            }
+            i++;
+            if(i == 6)
+            {
+                Box box(min, max);
+                addBox(box);
+                i = 0;
+            }
+        }            
+        input.close();
+    }
+
+    void writeToFile(const char* file_name)
+    {
+        std::ofstream output(file_name);
+        for(int i = 0; i < boxes.size(); i++)
+        {
+            output << boxes[i].min[0] << " ";
+            output << boxes[i].min[1] << " ";
+            output << boxes[i].min[2] << " ";
+            output << boxes[i].max[0] << " ";
+            output << boxes[i].max[1] << " ";
+            output << boxes[i].max[2] << "\n";
+        }
+
+        output.close();
+    }
 private:
     std::vector<Box> boxes;
     GLuint shader_program;
