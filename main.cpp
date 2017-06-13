@@ -99,6 +99,7 @@ struct Input
 Input g_input;
 
 bool g_mode_change = false;
+Vec3 raycast_hit_point;
 
 void calcShipAccelState(int accel_states[3], Input& input)
 {    
@@ -498,6 +499,7 @@ int main()
                 if(g_box_ptr)
                 {
                     g_box_unmodded = *g_box_ptr;
+                    raycast_hit_point = ray.calcPoint(t);
                 }                
                 std::cout << "t " << t << std::endl;
                 Vec3 hit_point = ray.origin + ray.dir * t;
@@ -512,8 +514,9 @@ int main()
                 float y_norm = y_diff / g_window_height;
                 Vec3 cursor_vec = Vec3(g_camera_ptr->getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
                 Vec3 box_normal = g_box_ptr->getSideNormal(g_box_side);
-                // TODO: change 0.1f to something dependent on box distance from camera
-                float amount = dot(cursor_vec, box_normal) * 1.0f;
+                Vec3 cam_pos = camera.getPosition();
+                float dist_cam_to_hitpoint = (cam_pos - raycast_hit_point).length();
+                float amount = dot(cursor_vec, box_normal) * dist_cam_to_hitpoint;
                 *g_box_ptr = g_box_unmodded;
                 g_box_ptr->changeLength(g_box_side, amount);
             }else if(left_clicking && !g_input.left_click)
@@ -549,8 +552,11 @@ int main()
         ship.draw();
         track.setViewTransform(view_transform);
         track.draw();
-        line_grid.setViewTransform(view_transform);
-        line_grid.draw();
+        if(g_game_mode == EDITOR)
+        {
+            line_grid.setViewTransform(view_transform);
+            line_grid.draw();
+        }
 
         //ImGui::Render();
 		glfwSwapBuffers(window); // Takes about 0.017 sec or 1/60 sec
