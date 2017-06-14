@@ -18,7 +18,7 @@ public:
     }
     
     Box(const Vec3& a, const Vec3& b)
-        :BBox(a, b)
+        :BBox(a, b), color(0.7f, 0.7f, 0.7f)
     {
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
@@ -42,10 +42,11 @@ public:
         *this = Box(min, max);
     }
 
-    void setAttributesToShader(GLuint shader)
+    void setShaderAndAttributes(GLuint shader)
     {
         // Setting attributes
-        glUseProgram(shader);
+        shader_program = shader;
+        glUseProgram(shader_program);
         glBindVertexArray(vao);
         GLsizei stride = sizeof(GLfloat) * 6; // 3 pos + 3 normal 
         GLint posAttrib = glGetAttribLocation(shader, "position");
@@ -131,9 +132,12 @@ public:
 
     void draw()
     {
+        glUseProgram(shader_program);
+        glUniform3fv(glGetUniformLocation(shader_program, "diffuse_color"), 1, (const float*)(color.data));
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, num_vertices);
         glBindVertexArray(0);
+        glUseProgram(0);
     }
 
     Vec3 getSideNormal(const int side_num)
@@ -166,6 +170,16 @@ public:
         } break;
         }
         return Vec3();
+    }
+
+    Vec3 getColor()
+    {
+        return color;
+    }
+
+    void setColor(const Vec3& c)
+    {
+        color = c;
     }
     
 private:
@@ -277,4 +291,6 @@ private:
     
     int num_vertices;
     GLuint vao, vbo, ibo;
+    GLuint shader_program;
+    Vec3 color;
 };

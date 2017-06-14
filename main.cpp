@@ -405,6 +405,7 @@ int main()
     
     bool left_clicking = false;
     bool placing_object = false;
+    Vec3 tmp_color;
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     // TODO: back of boxes are completely transparent 
@@ -427,9 +428,8 @@ int main()
         }
         */
         
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClearColor(0.1f, 0.2f, 0.2f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         if(g_game_mode == EDITOR)
         {
             // Process input            
@@ -514,12 +514,13 @@ int main()
                 Ray ray = camera.calcRayFromScreenCoord(click_x, click_y);
 
                 // Intersection
-                // TODO: multiple boxes
                 float t;
                 g_box_ptr = track.rayIntersectTrack(g_box_side, t, ray);
                 if(g_box_ptr)
-                {
+                {                    
                     g_box_unmodded = *g_box_ptr;
+                    tmp_color = g_box_ptr->getColor();
+                    g_box_ptr->setColor(Vec3(1.0f, 0.0f, 0.0f));
                     raycast_hit_point = ray.calcPoint(t);
                 }                
                 std::cout << "t " << t << std::endl;
@@ -538,10 +539,12 @@ int main()
                 Vec3 cam_pos = camera.getPosition();
                 float dist_cam_to_hitpoint = fabs((cam_pos - raycast_hit_point).length());
                 float amount = dot(cursor_vec, box_normal) * dist_cam_to_hitpoint;
-                *g_box_ptr = g_box_unmodded;
+                g_box_ptr->min = g_box_unmodded.min;
+                g_box_ptr->max = g_box_unmodded.max;
                 g_box_ptr->changeLength(g_box_side, amount);
             }else if(left_clicking && !g_input.left_click)
             {
+                g_box_ptr->setColor(tmp_color);
                 g_box_ptr = nullptr;
                 g_box_unmodded = Box();
                 left_clicking = false;
@@ -558,7 +561,6 @@ int main()
                 // Save editor mode camera pos and orientation
                 editor_camera_pos = camera.getPosition();
                 editor_camera_euler_ang = camera.getEulerAng();
-                camera = Camera();
                 g_mode_change = false;
             }
             int accel_states[3];

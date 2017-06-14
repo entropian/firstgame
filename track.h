@@ -36,6 +36,7 @@ public:
         glDeleteShader(vert_shader);
     }
 
+    // TODO: the name impliles all the uniforms are set
     void setUniforms(const Mat4& view_transform, const Mat4& normal_transform,
                      const Mat4& proj_transform, const Vec3& dir_light_1,
                      const Vec3& dir_light_2)
@@ -57,7 +58,7 @@ public:
 
     void addBox(Box& box)
     {
-        box.setAttributesToShader(shader_program);
+        box.setShaderAndAttributes(shader_program);
         boxes.push_back(box);
     }
 
@@ -122,12 +123,10 @@ public:
 
     void draw()
     {
-        glUseProgram(shader_program);
         for(int i = 0; i < boxes.size(); i++)
         {
             boxes[i].draw();
         }
-        glUseProgram(0);
     }
 
     void print()
@@ -183,5 +182,5 @@ public:
     }
 private:
     std::vector<Box> boxes;
-    GLuint shader_program;
+    GLuint shader_program;    
 };
