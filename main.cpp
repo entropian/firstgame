@@ -61,6 +61,7 @@ struct Input
     int f;
     int q;
     int n;
+    int o;
 
     bool jump_request;
 
@@ -86,6 +87,7 @@ struct Input
         f = 0;
         q = 0;
         n = 0;
+        o = 0;
         jump_request = false;
         cursor_x = 0.0;
         cursor_y = 0.0;
@@ -185,6 +187,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             g_input.n = 1;
         } break;
+        case GLFW_KEY_O:
+        {
+            g_input.o = 1;
+        } break;        
         case GLFW_KEY_SPACE:
         {
             g_input.jump_request = true;
@@ -238,6 +244,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             g_input.n = 0;
         } break;
+        case GLFW_KEY_O:
+        {
+            g_input.o = 0;
+        } break;                
         }
     }
 }
@@ -250,6 +260,7 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
         {
             g_input.left_click = true;
             glfwGetCursorPos(window, &g_input.click_x, &g_input.click_y);
+            g_input.click_y = g_window_height - g_input.click_y;
             std::cout << "xpos: " << g_input.click_x << " ypos: " << g_input.click_y << std::endl;
         }else if(action == GLFW_RELEASE)
         {
@@ -282,8 +293,10 @@ void getNormalizedWindowCoord(float& x, float& y, const unsigned int x_pos, cons
 {
     int window_width = 0, window_height = 0;
     glfwGetWindowSize(window, &window_width, &window_height);
+    //unsigned flipped_y_pos = g_window_height - y_pos;
     x = (float)(x_pos - window_width/2.0f) / (window_width / 2.0f);
-    y = (float)((window_height - y_pos) - window_height/2.0f) / (window_height / 2.0f);
+    //y = (float)(flipped_y_pos - window_height/2.0f) / (window_height / 2.0f);
+    y = (float)(y_pos - window_height/2.0f) / (window_height / 2.0f);
 }
 
 GLFWwindow* initWindow(unsigned int width, unsigned int height)
@@ -419,6 +432,7 @@ int main()
 
         if(g_game_mode == EDITOR)
         {
+            // Process input            
             if(g_mode_change)
             {
                 // Changed mode from play to editor
@@ -426,7 +440,14 @@ int main()
                 g_mode_change = false;
             }
 
-            // Process input
+            if(g_input.o)
+            {
+                std::string output_file_name;
+                std::cout << "Output file name: ";
+                std::cin >> output_file_name;
+                track.writeToFile(output_file_name.c_str());
+            }
+
             // Mouse
             if(g_input.right_click && g_input.cursor_moved_last_frame)
             {
@@ -509,13 +530,13 @@ int main()
             }else if(left_clicking && g_input.left_click && g_box_ptr)
             {
                 double x_diff = g_input.cursor_x - g_input.click_x;
-                double y_diff = -(g_input.cursor_y - g_input.click_y);
+                double y_diff = g_input.cursor_y - g_input.click_y;
                 float x_norm = x_diff / g_window_width * g_aspect_ratio;
                 float y_norm = y_diff / g_window_height;
                 Vec3 cursor_vec = Vec3(g_camera_ptr->getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
                 Vec3 box_normal = g_box_ptr->getSideNormal(g_box_side);
                 Vec3 cam_pos = camera.getPosition();
-                float dist_cam_to_hitpoint = (cam_pos - raycast_hit_point).length();
+                float dist_cam_to_hitpoint = fabs((cam_pos - raycast_hit_point).length());
                 float amount = dot(cursor_vec, box_normal) * dist_cam_to_hitpoint;
                 *g_box_ptr = g_box_unmodded;
                 g_box_ptr->changeLength(g_box_side, amount);
