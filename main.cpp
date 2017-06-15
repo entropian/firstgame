@@ -101,7 +101,6 @@ struct Input
 Input g_input;
 
 bool g_mode_change = false;
-Vec3 raycast_hit_point;
 
 void calcShipAccelState(int accel_states[3], Input& input)
 {    
@@ -146,6 +145,36 @@ void calcShipAccelState(int accel_states[3], Input& input)
     }else
     {
         accel_states[1] = -1;
+    }
+}
+
+void moveCamera(Camera& camera, const Input& input, const float dt)
+{
+    const float camera_speed = 10.0f * dt;
+    // Keyboard
+    if(input.w == 1)
+    {
+        camera.move(FORWARD, camera_speed);
+    }
+    if(input.s == 1)
+    {
+        camera.move(BACKWARD, camera_speed);
+    }
+    if(input.a == 1)
+    {
+        camera.move(LEFT, camera_speed);
+    }
+    if(input.d == 1)
+    {
+        camera.move(RIGHT, camera_speed);
+    }
+    if(input.r == 1)
+    {
+        camera.move(UP, camera_speed);
+    }
+    if(input.f == 1)
+    {
+        camera.move(DOWN, camera_speed);
     }
 }
 
@@ -345,17 +374,6 @@ int main()
     // Setup ImGui binding
     //ImGui_ImplGlfwGL3_Init(window, true);
 
-	/*
-		Input data:
-			mesh
-               ship
-            level geometry
-			texture
-               ship texture
-               cube map
-			shaders            
-	*/
-
     GLint num_tex_units;
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &num_tex_units);
     std::cout << "Number of texture units: " << num_tex_units << std::endl;
@@ -370,7 +388,7 @@ int main()
     float fov = 90.0f;
     // NOTE: where to put proj_transform?
     Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));
-    Camera camera(MINUS_Z, UP, Vec3(0.0f, 1.0f, 4.0f), fov, aspect_ratio);
+    Camera camera(Vec3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 4.0f), fov, aspect_ratio);
     Vec3 editor_camera_pos, editor_camera_euler_ang;
     g_camera_ptr = &camera;
     Mat4 view_transform = camera.getViewTransform();
@@ -406,6 +424,7 @@ int main()
     bool left_clicking = false;
     bool placing_object = false;
     Vec3 tmp_color;
+    Vec3 raycast_hit_point;
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     // TODO: back of boxes are completely transparent 
@@ -454,32 +473,8 @@ int main()
                 camera.turn(g_input.cursor_movement_x, g_input.cursor_movement_y);
                 g_input.cursor_moved_last_frame = false;
             }
-            const float camera_speed = 10.0f * dt;
             // Keyboard
-            if(g_input.w == 1)
-            {
-                camera.move(4, camera_speed);
-            }
-            if(g_input.s == 1)
-            {
-                camera.move(5, camera_speed);
-            }
-            if(g_input.a == 1)
-            {
-                camera.move(1, camera_speed);
-            }
-            if(g_input.d == 1)
-            {
-                camera.move(0, camera_speed);
-            }
-            if(g_input.r == 1)
-            {
-                camera.move(2, camera_speed);
-            }
-            if(g_input.f == 1)
-            {
-                camera.move(3, camera_speed);
-            }
+            moveCamera(camera, g_input, dt);
 
             if(placing_object)
             {
@@ -569,7 +564,7 @@ int main()
             ship.updatePosAndVelocity(dt, track);
             camera.setPosRelativeToShip(ship);
         }
-
+        // NOTE: separate rendering code for different motes
         view_transform = camera.getViewTransform();
         ship.updateDynamicUniforms(view_transform);
         ship.draw();
@@ -579,6 +574,13 @@ int main()
         {
             line_grid.setViewTransform(view_transform);
             line_grid.draw();
+            if(g_box_ptr)
+            {
+                // TODO
+                // Compile shaders
+                // set attributes and uniforms
+                // draw call
+            }
         }
 
         //ImGui::Render();

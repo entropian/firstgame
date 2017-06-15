@@ -146,27 +146,27 @@ public:
         {
         case 0: // Positive x
         {
-            return RIGHT;
+            return Vec3(1.0f, 0.0f, 0.0f);
         } break;
         case 1: // Negative x
         {
-            return LEFT;
+            return Vec3(-1.0f, 0.0f, 0.0f);;
         } break;
         case 2: // Positive y
         {
-            return UP;
+            return Vec3(0.0f, 1.0f, 0.0f);
         } break;
         case 3: // Negative y
         {
-            return DOWN;
+            return Vec3(0.0f, -1.0f, 0.0f);;
         } break;
         case 4: // Positive z
         {
-            return PLUS_Z;
+            return Vec3(0.0f, 0.0f, 1.0f);
         } break;
         case 5: // Negative z
         {
-            return MINUS_Z;
+            return Vec3(0.0f, 0.0f, -1.0f);;
         } break;
         }
         return Vec3();
@@ -185,6 +185,12 @@ public:
 private:
     void constructBox()
     {
+        Vec3 left_vec(-1.0f, 0.0f, 0.0f);
+        Vec3 right_vec(1.0f, 0.0f, 0.0f);
+        Vec3 up_vec(0.0f, 1.0f, 0.0f);
+        Vec3 down_vec(0.0f, -1.0f, 0.0f);
+        Vec3 plus_z_vec(0.0f, 0.0f, 1.0f);
+        Vec3 minus_z_vec(0.0f, 0.0f, -1.0f);
         Vec3 top_right_forward(max);
         Vec3 top_right_back(max[0], max[1], min[2]);
         Vec3 top_left_back(min[0], max[1], min[2]);
@@ -198,93 +204,93 @@ private:
         std::vector<GLfloat> vertices;
         // Top
         vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);
-        vertices.insert(vertices.end(), UP.data, UP.data+3);
+        vertices.insert(vertices.end(), up_vec.data, up_vec.data+3);
         vertices.insert(vertices.end(), top_left_forward.data, top_left_forward.data+3);
-        vertices.insert(vertices.end(), UP.data, UP.data+3);
+        vertices.insert(vertices.end(), up_vec.data, up_vec.data+3);
         vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);
-        vertices.insert(vertices.end(), UP.data, UP.data+3);
+        vertices.insert(vertices.end(), up_vec.data, up_vec.data+3);
 
         vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);
-        vertices.insert(vertices.end(), UP.data, UP.data+3);
+        vertices.insert(vertices.end(), up_vec.data, up_vec.data+3);
         vertices.insert(vertices.end(), top_left_forward.data, top_left_forward.data+3);
-        vertices.insert(vertices.end(), UP.data, UP.data+3);
+        vertices.insert(vertices.end(), up_vec.data, up_vec.data+3);
         vertices.insert(vertices.end(), top_right_forward.data, top_right_forward.data+3);
-        vertices.insert(vertices.end(), UP.data, UP.data+3);
+        vertices.insert(vertices.end(), up_vec.data, up_vec.data+3);
 
         // Bottom
         vertices.insert(vertices.end(), bottom_right_back.data, bottom_right_back.data+3);
-        vertices.insert(vertices.end(), DOWN.data, DOWN.data+3);
+        vertices.insert(vertices.end(), down_vec.data, down_vec.data+3);
         vertices.insert(vertices.end(), bottom_right_forward.data, bottom_right_forward.data+3);
-        vertices.insert(vertices.end(), DOWN.data, DOWN.data+3);
+        vertices.insert(vertices.end(), down_vec.data, down_vec.data+3);
         vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
-        vertices.insert(vertices.end(), DOWN.data, DOWN.data+3);
+        vertices.insert(vertices.end(), down_vec.data, down_vec.data+3);
             
         vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
-        vertices.insert(vertices.end(), DOWN.data, DOWN.data+3);
+        vertices.insert(vertices.end(), down_vec.data, down_vec.data+3);
         vertices.insert(vertices.end(), bottom_right_forward.data, bottom_right_forward.data+3);
-        vertices.insert(vertices.end(), DOWN.data, DOWN.data+3);
+        vertices.insert(vertices.end(), down_vec.data, down_vec.data+3);
         vertices.insert(vertices.end(), bottom_left_forward.data, bottom_left_forward.data+3);
-        vertices.insert(vertices.end(), DOWN.data, DOWN.data+3);
+        vertices.insert(vertices.end(), down_vec.data, down_vec.data+3);
 
         // Left
         vertices.insert(vertices.end(), bottom_left_forward.data, bottom_left_forward.data+3);
-        vertices.insert(vertices.end(), LEFT.data, LEFT.data+3);
+        vertices.insert(vertices.end(), left_vec.data, left_vec.data+3);
         vertices.insert(vertices.end(), top_left_forward.data, top_left_forward.data+3);
-        vertices.insert(vertices.end(), LEFT.data, LEFT.data+3);
+        vertices.insert(vertices.end(), left_vec.data, left_vec.data+3);
         vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
-        vertices.insert(vertices.end(), LEFT.data, LEFT.data+3);
+        vertices.insert(vertices.end(), left_vec.data, left_vec.data+3);
             
         vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
-        vertices.insert(vertices.end(), LEFT.data, LEFT.data+3);
+        vertices.insert(vertices.end(), left_vec.data, left_vec.data+3);
         vertices.insert(vertices.end(), top_left_forward.data, top_left_forward.data+3);
-        vertices.insert(vertices.end(), LEFT.data, LEFT.data+3);
+        vertices.insert(vertices.end(), left_vec.data, left_vec.data+3);
         vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);
-        vertices.insert(vertices.end(), LEFT.data, LEFT.data+3);
+        vertices.insert(vertices.end(), left_vec.data, left_vec.data+3);
 
         // Right
         vertices.insert(vertices.end(), bottom_right_back.data, bottom_right_back.data+3);
-        vertices.insert(vertices.end(), RIGHT.data, RIGHT.data+3);
+        vertices.insert(vertices.end(), right_vec.data, right_vec.data+3);
         vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);
-        vertices.insert(vertices.end(), RIGHT.data, RIGHT.data+3);
+        vertices.insert(vertices.end(), right_vec.data, right_vec.data+3);
         vertices.insert(vertices.end(), bottom_right_forward.data, bottom_right_forward.data+3);
-        vertices.insert(vertices.end(), RIGHT.data, RIGHT.data+3);
+        vertices.insert(vertices.end(), right_vec.data, right_vec.data+3);
             
         vertices.insert(vertices.end(), bottom_right_forward.data, bottom_right_forward.data+3);
-        vertices.insert(vertices.end(), RIGHT.data, RIGHT.data+3);
+        vertices.insert(vertices.end(), right_vec.data, right_vec.data+3);
         vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);
-        vertices.insert(vertices.end(), RIGHT.data, RIGHT.data+3);
+        vertices.insert(vertices.end(), right_vec.data, right_vec.data+3);
         vertices.insert(vertices.end(), top_right_forward.data, top_right_forward.data+3);
-        vertices.insert(vertices.end(), RIGHT.data, RIGHT.data+3);
+        vertices.insert(vertices.end(), right_vec.data, right_vec.data+3);
 
         // Forward
         vertices.insert(vertices.end(), bottom_right_forward.data, bottom_right_forward.data+3);
-        vertices.insert(vertices.end(), PLUS_Z.data, PLUS_Z.data+3);
+        vertices.insert(vertices.end(), plus_z_vec.data, plus_z_vec.data+3);
         vertices.insert(vertices.end(), bottom_left_forward.data, bottom_left_forward.data+3);
-        vertices.insert(vertices.end(), PLUS_Z.data, PLUS_Z.data+3);
+        vertices.insert(vertices.end(), plus_z_vec.data, plus_z_vec.data+3);
         vertices.insert(vertices.end(), top_right_forward.data, top_right_forward.data+3);
-        vertices.insert(vertices.end(), PLUS_Z.data, PLUS_Z.data+3);
+        vertices.insert(vertices.end(), plus_z_vec.data, plus_z_vec.data+3);
             
         vertices.insert(vertices.end(), bottom_left_forward.data, bottom_left_forward.data+3);
-        vertices.insert(vertices.end(), PLUS_Z.data, PLUS_Z.data+3);
+        vertices.insert(vertices.end(), plus_z_vec.data, plus_z_vec.data+3);
         vertices.insert(vertices.end(), top_right_forward.data, top_right_forward.data+3);
-        vertices.insert(vertices.end(), PLUS_Z.data, PLUS_Z.data+3);
+        vertices.insert(vertices.end(), plus_z_vec.data, plus_z_vec.data+3);
         vertices.insert(vertices.end(), top_left_forward.data, top_left_forward.data+3);
-        vertices.insert(vertices.end(), PLUS_Z.data, PLUS_Z.data+3);
+        vertices.insert(vertices.end(), plus_z_vec.data, plus_z_vec.data+3);
 
         // Back
         vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
-        vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
+        vertices.insert(vertices.end(), minus_z_vec.data, minus_z_vec.data+3);
         vertices.insert(vertices.end(), bottom_right_back.data, bottom_right_back.data+3);
-        vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
+        vertices.insert(vertices.end(), minus_z_vec.data, minus_z_vec.data+3);
         vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);        
-        vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
+        vertices.insert(vertices.end(), minus_z_vec.data, minus_z_vec.data+3);
             
         vertices.insert(vertices.end(), bottom_right_back.data, bottom_right_back.data+3);
-        vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
+        vertices.insert(vertices.end(), minus_z_vec.data, minus_z_vec.data+3);
         vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);
-        vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
+        vertices.insert(vertices.end(), minus_z_vec.data, minus_z_vec.data+3);
         vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);        
-        vertices.insert(vertices.end(), MINUS_Z.data, MINUS_Z.data+3);
+        vertices.insert(vertices.end(), minus_z_vec.data, minus_z_vec.data+3);
 
         glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertices.size(), &(vertices[0]), GL_STATIC_DRAW);
     }

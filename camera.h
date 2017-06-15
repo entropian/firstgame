@@ -4,6 +4,16 @@
 #include "imageplane.h"
 #include "util.h"
 
+enum Direction
+{
+    FORWARD,
+    BACKWARD,
+    LEFT,
+    RIGHT,
+    UP,
+    DOWN
+};
+
 class Camera
 {
 public:
@@ -58,36 +68,36 @@ public:
         dir[2] *= cosf(degToRad(euler_angle[1]));
         dir.normalize();
 
-        camera_transform = lookAt(dir, UP, pos);
+        camera_transform = lookAt(dir, Vec3(0.0f, 1.0f, 0.0f), pos);
         view_transform = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 1.0f)) * camera_transform.inverse();
     }
 
-    void move(const unsigned int dir, const float distance)
+    void move(const Direction direction, const float distance)
     {
         Vec3 move_dir;
-        switch(dir)
+        switch(direction)
         {
-        case 0: // Positive x
-        {
-            move_dir = getXAxis();
-        } break;
-        case 1: // Negative x
+        case LEFT:
         {
             move_dir = -getXAxis();
         } break;
-        case 2: // Positive y
+        case RIGHT:
         {
-            move_dir = getYAxis();
+            move_dir = getXAxis();
         } break;
-        case 3: // Negative y
+        case UP: 
         {
-            move_dir = -getYAxis();
+            move_dir = Vec3(0.0f, 1.0f, 0.0f);
         } break;
-        case 4: // Positive z
+        case DOWN:
+        {
+            move_dir = Vec3(0.0f, -1.0f, 0.0f);
+        } break;
+        case FORWARD:
         {
             move_dir = -getZAxis();
         } break;
-        case 5: // Negative z
+        case BACKWARD: 
         {
             move_dir = getZAxis();
         } break;
