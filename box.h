@@ -26,7 +26,7 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         constructBox();
         glBindVertexArray(0);        
-        num_vertices = 36;
+        num_vertices = 36;        
     }
 
     Box(const Vec3& center, const float width, const float height, const float length)
@@ -299,4 +299,120 @@ private:
     GLuint vao, vbo, ibo;
     GLuint shader_program;
     Vec3 color;
+};
+
+class BoxWireframeDrawer
+{
+public:
+    BoxWireframeDrawer(const Mat4& proj_mat)
+        :num_vertices(24)
+    {
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+
+        // Shaders
+        std::ifstream vert_fstream("shaders/boxwireframe.vs");
+        std::stringstream buffer;
+        buffer << vert_fstream.rdbuf();
+        vert_fstream.close();
+        std::string vert_src = buffer.str();
+        GLuint vert_shader = loadShader(vert_src.c_str(), GL_VERTEX_SHADER);
+
+        std::ifstream frag_fstream("shaders/boxwireframe.fs");
+        buffer.str("");
+        buffer << frag_fstream.rdbuf();
+        std::string frag_src = buffer.str();
+        GLuint frag_shader = loadShader(frag_src.c_str(), GL_FRAGMENT_SHADER);
+
+        shader_program = glCreateProgram();
+        glAttachShader(shader_program, vert_shader);
+        glAttachShader(shader_program, frag_shader);
+        glBindFragDataLocation(shader_program, 0, "out_color");
+        glLinkProgram(shader_program);
+        glDeleteShader(vert_shader);
+        glDeleteShader(frag_shader);
+
+        glUseProgram(shader_program);
+        GLint proj_handle = glGetUniformLocation(shader_program, "proj_mat");
+        glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_mat.data[0][0]));
+
+        glUseProgram(0);
+    }
+
+    void drawWireframeOnBox(const Box& box, const Mat4& view_transform)
+    {
+        Vec3 offset(0.01f, 0.01f, 0.01f);
+        Vec3 min = box.min - offset, max = box.max + offset;
+
+        Vec3 top_right_forward(max);
+        Vec3 top_right_back(max[0], max[1], min[2]);
+        Vec3 top_left_back(min[0], max[1], min[2]);
+        Vec3 top_left_forward(min[0], max[1], max[2]);
+        Vec3 bottom_left_back(min);
+        Vec3 bottom_left_forward(min[0], min[1], max[2]);
+        Vec3 bottom_right_forward(max[0], min[1], max[2]);
+        Vec3 bottom_right_back(max[0], min[1], min[2]);        
+
+        std::vector<GLfloat> vertices;
+        // Top
+        vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);
+        vertices.insert(vertices.end(), top_left_forward.data, top_left_forward.data+3);
+        vertices.insert(vertices.end(), top_right_forward.data, top_right_forward.data+3);
+        vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);
+
+        // Bottom
+        vertices.insert(vertices.end(), bottom_right_back.data, bottom_right_back.data+3);
+        vertices.insert(vertices.end(), bottom_right_forward.data, bottom_right_forward.data+3);
+        vertices.insert(vertices.end(), bottom_left_forward.data, bottom_left_forward.data+3);
+        vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
+
+        // Left
+        vertices.insert(vertices.end(), bottom_left_forward.data, bottom_left_forward.data+3);
+        vertices.insert(vertices.end(), top_left_forward.data, top_left_forward.data+3);
+        vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);
+        vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
+
+        // Right
+        vertices.insert(vertices.end(), bottom_right_back.data, bottom_right_back.data+3);
+        vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);
+        vertices.insert(vertices.end(), top_right_forward.data, top_right_forward.data+3);
+        vertices.insert(vertices.end(), bottom_right_forward.data, bottom_right_forward.data+3);
+
+        // Forward
+        vertices.insert(vertices.end(), bottom_right_forward.data, bottom_right_forward.data+3);
+        vertices.insert(vertices.end(), bottom_left_forward.data, bottom_left_forward.data+3);
+        vertices.insert(vertices.end(), top_left_forward.data, top_left_forward.data+3);
+        vertices.insert(vertices.end(), top_right_forward.data, top_right_forward.data+3);
+
+        // Back
+        vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
+        vertices.insert(vertices.end(), bottom_right_back.data, bottom_right_back.data+3);
+        vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);                
+        vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);
+        
+
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertices.size(), &(vertices[0]), GL_DYNAMIC_DRAW);
+        glUseProgram(shader_program);
+        
+        // set attributes
+        GLsizei stride = sizeof(GLfloat) * 3; // 3 pos
+        GLint pos_attrib = glGetAttribLocation(shader_program, "position");
+        glEnableVertexAttribArray(pos_attrib);
+        glVertexAttribPointer(pos_attrib, 3, GL_FLOAT, GL_FALSE, stride, 0);
+        
+        // set uniforms
+        GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
+        glUniformMatrix4fv(view_handle, 1, GL_TRUE, &(view_transform.data[0][0]));
+                          
+        glDrawArrays(GL_LINE_STRIP, 0, num_vertices);
+        glBindVertexArray(0);
+        glUseProgram(0);
+    }
+private:    
+    int num_vertices;
+    GLuint vao, vbo, ibo;
+    GLuint shader_program;
+    
 };

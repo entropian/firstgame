@@ -419,7 +419,12 @@ int main()
     bool show_another_window = false;
     ImVec4 clear_color = ImColor(114, 144, 154);
 
+    float lineWidth[2];
+    glGetFloatv(GL_LINE_WIDTH_RANGE, lineWidth);
+    std::cout << "Max line width " << lineWidth[1] << "\n";
+
     GlobalClock gclock;
+    BoxWireframeDrawer bwfd(proj_transform);
     
     bool left_clicking = false;
     bool placing_object = false;
@@ -512,7 +517,7 @@ int main()
                 float t;
                 g_box_ptr = track.rayIntersectTrack(g_box_side, t, ray);
                 if(g_box_ptr)
-                {                    
+                {   
                     g_box_unmodded = *g_box_ptr;
                     tmp_color = g_box_ptr->getColor();
                     g_box_ptr->setColor(Vec3(1.0f, 0.0f, 0.0f));
@@ -525,6 +530,8 @@ int main()
                 left_clicking = true;
             }else if(left_clicking && g_input.left_click && g_box_ptr)
             {
+                // g_box_ptr, g_input, g_window_width, g_window_height, g_aspect_ratio
+                // camera, g_box_unmodded
                 double x_diff = g_input.cursor_x - g_input.click_x;
                 double y_diff = g_input.cursor_y - g_input.click_y;
                 float x_norm = x_diff / g_window_width * g_aspect_ratio;
@@ -576,10 +583,7 @@ int main()
             line_grid.draw();
             if(g_box_ptr)
             {
-                // TODO
-                // Compile shaders
-                // set attributes and uniforms
-                // draw call
+                bwfd.drawWireframeOnBox(*g_box_ptr, view_transform);
             }
         }
 
