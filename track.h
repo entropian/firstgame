@@ -180,6 +180,15 @@ public:
 
         output.close();
     }
+
+    ~Track()
+    {
+        glDeleteProgram(shader_program);
+        for(int i = 0; i < boxes.size(); i++)
+        {
+            boxes[i].deleteBox();
+        }
+    }
 private:
     std::vector<Box> boxes;
     GLuint shader_program;    

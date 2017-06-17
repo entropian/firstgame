@@ -431,9 +431,8 @@ int main()
     Vec3 tmp_color;
     Vec3 raycast_hit_point;
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    // TODO: back of boxes are completely transparent 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // TODO: back of boxes are completely transparent
+
 	while (!glfwWindowShouldClose(window) && !EXIT)
 	{        
         glfwPollEvents();
@@ -580,7 +579,10 @@ int main()
         if(g_game_mode == EDITOR)
         {
             line_grid.setViewTransform(view_transform);
+            glEnable(GL_BLEND);    
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             line_grid.draw();
+            glDisable(GL_BLEND);
             if(g_box_ptr)
             {
                 bwfd.drawWireframeOnBox(*g_box_ptr, view_transform);

@@ -29,6 +29,13 @@ public:
         num_vertices = 36;        
     }
 
+    void deleteBox()
+    {
+        glDeleteBuffers(1, &vbo);
+        glDeleteBuffers(1, &ibo);
+        glDeleteVertexArrays(1, &vao);
+    }
+
     Box(const Vec3& center, const float width, const float height, const float length)
     {
         float half_width = fabs(width) * 0.5f;
@@ -337,6 +344,15 @@ public:
         glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_mat.data[0][0]));
 
         glUseProgram(0);
+    }
+
+    // TODO: destructor
+    ~BoxWireframeDrawer()
+    {
+        glDeleteVertexArrays(1, &vao);
+        glDeleteBuffers(1, &vbo);
+        glDeleteBuffers(1, &ibo);
+        glDeleteProgram(shader_program);
     }
 
     void drawWireframeOnBox(const Box& box, const Mat4& view_transform)

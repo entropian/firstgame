@@ -154,6 +154,8 @@ Ship::~Ship()
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ibo);
     glDeleteVertexArrays(1, &vao);
+    glDeleteTextures(1, &diffuse_map);
+    glDeleteTextures(1, &normal_map);
 }
 
 void Ship::setStaticUniforms(const Mat4& proj_transform, const Vec3& dir_light_1, const Vec3& dir_light_2)
