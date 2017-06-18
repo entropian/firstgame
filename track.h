@@ -10,30 +10,7 @@ class Track
 public:
     Track()
     {
-        // Shaders
-        std::ifstream vert_fstream("shaders/box.vs");
-        std::stringstream buffer;
-        buffer << vert_fstream.rdbuf();
-        vert_fstream.close();
-        std::string vert_src = buffer.str();
-        const char* vert_src_cstr = vert_src.c_str();    
-        GLuint vert_shader = loadShader(vert_src_cstr, GL_VERTEX_SHADER);
-
-        std::ifstream frag_fstream("shaders/box.fs");
-        buffer.str("");
-        buffer << frag_fstream.rdbuf();
-        std::string frag_src = buffer.str();
-        const char* frag_src_cstr = frag_src.c_str();
-        GLuint frag_shader = loadShader(frag_src_cstr, GL_FRAGMENT_SHADER);
-
-        shader_program = glCreateProgram();
-        glAttachShader(shader_program, vert_shader);
-        glAttachShader(shader_program, frag_shader);
-        glBindFragDataLocation(shader_program, 0, "outColor");
-        glLinkProgram(shader_program);
-        glUseProgram(shader_program);
-        glDeleteShader(frag_shader);
-        glDeleteShader(vert_shader);
+        shader_program = loadAndLinkShaders("shaders/box.vs", "shaders/box.fs");
     }
 
     // TODO: the name impliles all the uniforms are set

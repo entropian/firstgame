@@ -26,6 +26,7 @@
 #include "track.h"
 #include "globalclock.h"
 #include "linegrid.h"
+#include "manipulator.h"
 
 bool EXIT = false;
 
@@ -425,6 +426,8 @@ int main()
 
     GlobalClock gclock;
     BoxWireframeDrawer bwfd(proj_transform);
+
+    Manipulator manip(proj_transform);
     
     bool left_clicking = false;
     bool placing_object = false;
@@ -588,6 +591,7 @@ int main()
                 bwfd.drawWireframeOnBox(*g_box_ptr, view_transform);
             }
         }
+        manip.draw(view_transform);
 
         //ImGui::Render();
 		glfwSwapBuffers(window); // Takes about 0.017 sec or 1/60 sec

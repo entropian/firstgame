@@ -317,27 +317,7 @@ public:
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
 
-        // Shaders
-        std::ifstream vert_fstream("shaders/boxwireframe.vs");
-        std::stringstream buffer;
-        buffer << vert_fstream.rdbuf();
-        vert_fstream.close();
-        std::string vert_src = buffer.str();
-        GLuint vert_shader = loadShader(vert_src.c_str(), GL_VERTEX_SHADER);
-
-        std::ifstream frag_fstream("shaders/boxwireframe.fs");
-        buffer.str("");
-        buffer << frag_fstream.rdbuf();
-        std::string frag_src = buffer.str();
-        GLuint frag_shader = loadShader(frag_src.c_str(), GL_FRAGMENT_SHADER);
-
-        shader_program = glCreateProgram();
-        glAttachShader(shader_program, vert_shader);
-        glAttachShader(shader_program, frag_shader);
-        glBindFragDataLocation(shader_program, 0, "out_color");
-        glLinkProgram(shader_program);
-        glDeleteShader(vert_shader);
-        glDeleteShader(frag_shader);
+        shader_program = loadAndLinkShaders("shaders/boxwireframe.vs", "shaders/boxwireframe.fs");
 
         glUseProgram(shader_program);
         GLint proj_handle = glGetUniformLocation(shader_program, "proj_mat");
