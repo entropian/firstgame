@@ -16,14 +16,40 @@ public:
     Manipulator(const Mat4& proj_transform)
     {
         std::vector<Vec3> cone_verts;
-        generateCone(cone_verts, 1.0f, 3.0f);
+        generateCone(cone_verts, 0.5f, 2.0f);
+        const float handle_length = 2.0f;
+        num_vert_per_cone = cone_verts.size();
+        // Y cone
+        for(int i = 0; i < num_vert_per_cone; i++)
+        {
+            cone_verts[i][1] += handle_length;
+        }
+        cone_verts.push_back(Vec3(0.0f, 0.0f, 0.0f));
+        cone_verts.push_back(Vec3(0.0f, handle_length, 0.0f));
+        num_vert_per_arrow = num_vert_per_cone + 2;
+        
+        // X cone
+        Mat4 rotation = Mat4::makeZRotation(-90.0f);
+        for(int i = 0; i < num_vert_per_cone; i++)
+        {            
+            cone_verts.push_back(Vec3(rotation * Vec4(cone_verts[i], 1.0f)));
+        }
+        cone_verts.push_back(Vec3(0.0f, 0.0f, 0.0f));
+        cone_verts.push_back(Vec3(handle_length, 0.0f, 0.0f));
+
+        // Z cone
+        rotation = Mat4::makeXRotation(90.0f);
+        for(int i = 0; i < num_vert_per_cone; i++)
+        {            
+            cone_verts.push_back(Vec3(rotation * Vec4(cone_verts[i], 1.0f)));
+        }
+        cone_verts.push_back(Vec3(0.0f, 0.0f, 0.0f));
+        cone_verts.push_back(Vec3(0.0f, 0.0f, handle_length));        
         // 1 vert at the tip of the cone. 36 along the rim of the cone.
         // The first vert on the rim of the cone is counted twice 1 + 36 + 1 = 38
-        num_vertices = 38; 
+        num_vertices = 38;
         std::vector<float>* float_vec = reinterpret_cast<std::vector<float>*>(&cone_verts);
-        printf("cone_verts size = %d\n", cone_verts.size());
-        printf("float_vec size = %d\n", (*float_vec).size());
-        shader_program = loadAndLinkShaders("shaders/linegrid.vs", "shaders/linegrid.fs");
+        shader_program = loadAndLinkShaders("shaders/default.vs", "shaders/color.fs");
 
         glUseProgram(shader_program);
         glGenVertexArrays(1, &vao);
@@ -59,7 +85,20 @@ public:
         glBindVertexArray(vao);
         GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
         glUniformMatrix4fv(view_handle, 1, GL_TRUE, &(view_transform.data[0][0]));
-        glDrawArrays(GL_TRIANGLE_FAN, 0, num_vertices);
+        Vec3 color(0.0f, 0.0f, 1.0f);
+        glUniform3fv(glGetUniformLocation(shader_program, "color"), 1, (const float*)(color.data));
+        // Draw cone
+        glDrawArrays(GL_TRIANGLE_FAN, 0, num_vert_per_cone);
+        // Draw handle
+        glDrawArrays(GL_LINES, num_vert_per_cone, 2);
+        color = Vec3(1.0f, 0.0f, 0.0f);
+        glUniform3fv(glGetUniformLocation(shader_program, "color"), 1, (const float*)(color.data));        
+        glDrawArrays(GL_TRIANGLE_FAN, num_vert_per_arrow, num_vert_per_cone);
+        glDrawArrays(GL_LINES, num_vert_per_arrow + num_vert_per_cone, 2);
+        color = Vec3(0.0f, 1.0f, 0.0f);
+        glUniform3fv(glGetUniformLocation(shader_program, "color"), 1, (const float*)(color.data));        
+        glDrawArrays(GL_TRIANGLE_FAN, 2 * num_vert_per_arrow, num_vert_per_cone);
+        glDrawArrays(GL_LINES, 2 * num_vert_per_arrow + num_vert_per_cone, 2);
         glBindVertexArray(0);
         glUseProgram(0);
     }
@@ -73,10 +112,11 @@ private:
         for(int i = 0; i < num_rim_verts + 1; i++)
         {
             float theta = i * theta_increment;
-            vertices.push_back(Vec3(cosf(theta) * radius, 0.0f, sinf(theta)) * radius);
+            vertices.push_back(Vec3(cosf(theta) * radius, 0.0f, sinf(theta) * radius));
         }
     }
     int num_vertices;
+    int num_vert_per_cone, num_vert_per_arrow;
     GLuint vao, vbo;
     GLuint shader_program;
 };

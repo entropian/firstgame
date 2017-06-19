@@ -82,7 +82,7 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * points.size(), &(points[0]), GL_STATIC_DRAW);
 
-        shader_program = loadAndLinkShaders("shaders/linegrid.vs", "shaders/linegrid.fs");
+        shader_program = loadAndLinkShaders("shaders/default.vs", "shaders/color.fs");
         
         glUseProgram(shader_program);
         // Uniforms
@@ -90,6 +90,8 @@ public:
         glUniformMatrix4fv(view_handle, 1, GL_TRUE, &(view_transform.data[0][0]));
         GLint proj_handle = glGetUniformLocation(shader_program, "proj_mat");
         glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_transform.data[0][0]));
+        Vec3 color(0.7f, 1.0f, 0.0f);
+        glUniform3fv(glGetUniformLocation(shader_program, "color"), 1, (const float*)(color.data));
 
         // Attributes
         GLsizei stride = sizeof(GLfloat) * 3;
