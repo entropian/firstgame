@@ -3,6 +3,7 @@
 #include <vector>
 #include <iostream>
 #include "vec.h"
+#include "box.h"
 /*
   The stick part of the arrow could just be a line
   Cone part of the arrow should be drawn as a triangle fan
@@ -51,7 +52,7 @@ public:
         // The first vert on the rim of the cone is counted twice 1 + 36 + 1 = 38
         num_vertices = 38;
         std::vector<float>* float_vec = reinterpret_cast<std::vector<float>*>(&cone_verts);
-        shader_program = loadAndLinkShaders("shaders/default.vs", "shaders/color.fs");
+        shader_program = loadAndLinkShaders("shaders/model.vs", "shaders/color.fs");
 
         glUseProgram(shader_program);
         glGenVertexArrays(1, &vao);
@@ -98,6 +99,8 @@ public:
         glBindVertexArray(vao);
         GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
         glUniformMatrix4fv(view_handle, 1, GL_TRUE, &(view_transform.data[0][0]));
+        GLint model_handle = glGetUniformLocation(shader_program, "model_mat");
+        glUniformMatrix4fv(model_handle, 1, GL_TRUE, &(model_transform.data[0][0]));
         Vec3 color(0.0f, 0.0f, 1.0f);
         glUniform3fv(glGetUniformLocation(shader_program, "color"), 1, (const float*)(color.data));
         // Draw cone
@@ -139,6 +142,12 @@ public:
             }
         }
         return false;
+    }
+
+    void attachToBox(const Box& box)
+    {
+        Vec3 box_center = box.min + (box.max - box.min) * 0.5f;
+        model_transform = Mat4::makeTranslation(box_center);
     }
 
 private:

@@ -522,8 +522,9 @@ int main()
                 {   
                     g_box_unmodded = *g_box_ptr;
                     tmp_color = g_box_ptr->getColor();
-                    g_box_ptr->setColor(Vec3(1.0f, 0.0f, 0.0f));
+                    g_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
                     raycast_hit_point = ray.calcPoint(t);
+                    manip.attachToBox(*g_box_ptr);
                 }                
                 std::cout << "t " << t << std::endl;
                 Vec3 hit_point = ray.origin + ray.dir * t;
@@ -589,9 +590,11 @@ int main()
             if(g_box_ptr)
             {
                 bwfd.drawWireframeOnBox(*g_box_ptr, view_transform);
+                glDisable(GL_DEPTH_TEST);
+                manip.draw(view_transform);
+                glEnable(GL_DEPTH_TEST);
             }
         }
-        manip.draw(view_transform);
 
         //ImGui::Render();
 		glfwSwapBuffers(window); // Takes about 0.017 sec or 1/60 sec
