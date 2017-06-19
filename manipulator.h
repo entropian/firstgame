@@ -16,7 +16,9 @@ public:
     Manipulator(const Mat4& proj_transform)
     {
         std::vector<Vec3> cone_verts;
-        generateCone(cone_verts, 0.5f, 2.0f);
+        const float cone_radius = 0.5f;
+        const float cone_height = 2.0f;
+        generateCone(cone_verts, cone_radius, cone_height);
         const float handle_length = 2.0f;
         num_vert_per_cone = cone_verts.size();
         // Y cone
@@ -70,6 +72,17 @@ public:
 
         glBindVertexArray(0);
         glUseProgram(0);
+
+        // Construct bounding boxes
+        // X arrow
+        bboxes[0].min = Vec3(0.0f, -cone_radius, -cone_radius);
+        bboxes[0].max = Vec3(cone_height + handle_length, cone_radius, cone_radius);
+        // Y arrow
+        bboxes[1].min = Vec3(-cone_radius, 0.0f, -cone_radius);
+        bboxes[1].max = Vec3(cone_radius, cone_height + handle_length, cone_radius);
+        // Z arrow
+        bboxes[2].min = Vec3(-cone_radius, -cone_radius, 0.0f);
+        bboxes[2].max = Vec3(cone_radius, cone_radius, cone_height + handle_length);
     }
 
     ~Manipulator()
@@ -103,6 +116,31 @@ public:
         glUseProgram(0);
     }
 
+    bool rayIntersect(float& t, const Ray& ray)
+    {
+        int face;
+        float x_arrow_t = bboxes[0].rayIntersect(face, ray);
+        float y_arrow_t = bboxes[1].rayIntersect(face, ray);
+        float z_arrow_t = bboxes[2].rayIntersect(face, ray);
+        if(x_arrow_t < y_arrow_t && x_arrow_t < z_arrow_t)
+        {
+            t = x_arrow_t;
+            return true;
+        }else
+        {
+            if(y_arrow_t < z_arrow_t)
+            {
+                t = y_arrow_t;
+                return true;                
+            }else if(z_arrow_t > y_arrow_t)
+            {
+                t = z_arrow_t;
+                return true;
+            }
+        }
+        return false;
+    }
+
 private:
     void generateCone(std::vector<Vec3>& vertices, const float radius, const float height)
     {
@@ -115,6 +153,8 @@ private:
             vertices.push_back(Vec3(cosf(theta) * radius, 0.0f, sinf(theta) * radius));
         }
     }
+    Mat4 model_transform;
+    BBox bboxes[3];
     int num_vertices;
     int num_vert_per_cone, num_vert_per_arrow;
     GLuint vao, vbo;
