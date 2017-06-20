@@ -337,7 +337,7 @@ GLFWwindow* initWindow(unsigned int width, unsigned int height)
 
 int main()
 {
-    unsigned int window_width = 720;
+    unsigned int window_width = 1280;
     unsigned int window_height = 720;
 	GLFWwindow *window = initWindow(window_width, window_height);
     glfwSetKeyCallback(window, keyCallback);
@@ -399,11 +399,18 @@ int main()
     Box *selected_box_ptr = NULL;
     
     glEnable(GL_DEPTH_TEST);
+    int count = 0;
 	while (!glfwWindowShouldClose(window) && !EXIT)
 	{
         glfwPollEvents();
         gclock.update();
         float dt = gclock.getDtSeconds();
+        count++;
+        if(count == 100)
+        {
+            printf("dt %f\n", dt);
+            count = 0;
+        }
         
         double cursor_x, cursor_y;
         glfwGetCursorPos(window, &cursor_x, &cursor_y);                    
@@ -527,8 +534,11 @@ int main()
                         }
                     }else
                     {
-                        selected_box_ptr->setColor(original_box_color);
-                        selected_box_ptr = nullptr;
+                        if(selected_box_ptr)
+                        {
+                            selected_box_ptr->setColor(original_box_color);
+                            selected_box_ptr = nullptr;
+                        }
                     }
                 }
                 std::cout << "t " << t << std::endl;

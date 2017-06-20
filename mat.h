@@ -211,7 +211,7 @@ struct Mat
         float f = fabs(sin(ang)) < EPS ? 0 : 1/tan(ang);
         if(abs(aspect_ratio) > EPS)
         {
-            r(0, 0) = f * aspect_ratio;
+            r(0, 0) = f / aspect_ratio;
         }
 
         r(1, 1) = f;
