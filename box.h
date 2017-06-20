@@ -137,6 +137,15 @@ public:
         glBindVertexArray(0);
     }
 
+    virtual void move(const Vec3& v)
+    {
+        BBox::move(v);
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        constructBox();
+        glBindVertexArray(0);        
+    }
+
     void draw()
     {
         glUseProgram(shader_program);

@@ -54,6 +54,12 @@ struct BBox
         }        
     }
 
+    virtual void move(const Vec3& v) 
+    {
+        min += v;
+        max += v;
+    }
+
     bool bboxIntersect(const BBox& bbox) const
     {
         if(max[0] < bbox.min[0] || min[0] > bbox.max[0]) return 0;

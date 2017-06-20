@@ -420,6 +420,15 @@ int main()
         glfwPollEvents();
         gclock.update();
         float dt = gclock.getDtSeconds();
+
+        double cursor_x, cursor_y;
+        glfwGetCursorPos(window, &cursor_x, &cursor_y);                    
+        cursor_y = (double)window_height - cursor_y;
+        static double last_cursor_x = cursor_x;
+        static double last_cursor_y = cursor_y;
+        float cursor_movement_x = cursor_x - last_cursor_x;
+        float cursor_movement_y = cursor_y - last_cursor_y;        
+        
         /*
         ImGui_ImplGlfwGL3_NewFrame();
         {
@@ -494,6 +503,7 @@ int main()
             static Vec3 original_box_color;
             static bool left_clicking = false;
             static bool clicking_on_selected_box = false;
+            static bool clicking_on_manipulator = false;
             if(!left_clicking && g_input.left_click)
             {
                 float click_x, click_y;
@@ -501,34 +511,45 @@ int main()
                 Ray ray = camera.calcRayFromScreenCoord(click_x, click_y);
 
                 // TODO: if a box is already selected, test ray against manipulator widget first.
-
-                // Track intersection
-                float t;
-                Box* hit_box_ptr = track.rayIntersectTrack(box_hit_side, t, ray);
-                if(hit_box_ptr)
+                float t;                
+                if(selected_box_ptr)
                 {
-                    raycast_hit_point = ray.calcPoint(t);
-                    if(hit_box_ptr != selected_box_ptr)
+                    if(manip.rayIntersect(t, ray))
                     {
-                        if(selected_box_ptr)
+                        clicking_on_manipulator = true;
+                        printf("clicking_on_manipulator = true;\n");
+                    }
+                }
+                if(!clicking_on_manipulator)
+                {
+                    // Track intersection
+                    Box* hit_box_ptr = track.rayIntersectTrack(box_hit_side, t, ray);
+                    if(hit_box_ptr)
+                    {
+                    
+                        raycast_hit_point = ray.calcPoint(t);
+                        if(hit_box_ptr != selected_box_ptr)
                         {
-                            selected_box_ptr->setColor(original_box_color);
+                            if(selected_box_ptr)
+                            {
+                                selected_box_ptr->setColor(original_box_color);
+                            }
+                            selected_box_ptr = hit_box_ptr;
+                            unmodded_box = *selected_box_ptr;
+                            original_box_color = selected_box_ptr->getColor();
+                            selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
+                            manip.attachToBox(*selected_box_ptr);
+                        }else
+                        {
+                            clicking_on_selected_box = true;
+                            unmodded_box = *selected_box_ptr;
                         }
-                        selected_box_ptr = hit_box_ptr;
-                        unmodded_box = *selected_box_ptr;
-                        original_box_color = selected_box_ptr->getColor();
-                        selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
-                        manip.attachToBox(*selected_box_ptr);
                     }else
                     {
-                        clicking_on_selected_box = true;
-                        unmodded_box = *selected_box_ptr;
+                        selected_box_ptr->setColor(original_box_color);
+                        selected_box_ptr = nullptr;
+                        unmodded_box = Box();
                     }
-                }else
-                {
-                    selected_box_ptr->setColor(original_box_color);
-                    selected_box_ptr = nullptr;
-                    unmodded_box = Box();
                 }
                 std::cout << "t " << t << std::endl;
                 Vec3 hit_point = ray.origin + ray.dir * t;
@@ -537,28 +558,35 @@ int main()
                 left_clicking = true;
             }else if(left_clicking && g_input.left_click && selected_box_ptr)
             {
+                double x_diff = g_input.cursor_x - g_input.click_x;
+                double y_diff = g_input.cursor_y - g_input.click_y;
+                float x_norm = x_diff / window_width * aspect_ratio;
+                float y_norm = y_diff / window_height;
+                Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+                Vec3 cam_pos = camera.getPosition();                
                 if(clicking_on_selected_box)
                 {
-                    // selected_box_ptr, g_input, window_width, window_height, aspect_ratio
-                    // camera, unmodded_box
-                    double x_diff = g_input.cursor_x - g_input.click_x;
-                    double y_diff = g_input.cursor_y - g_input.click_y;
-                    float x_norm = x_diff / window_width * aspect_ratio;
-                    float y_norm = y_diff / window_height;
-                    Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
                     Vec3 box_normal = selected_box_ptr->getSideNormal(box_hit_side);
-                    Vec3 cam_pos = camera.getPosition();
                     float dist_cam_to_hitpoint = fabs((cam_pos - raycast_hit_point).length());
                     float amount = dot(cursor_vec, box_normal) * dist_cam_to_hitpoint;
                     selected_box_ptr->min = unmodded_box.min;
                     selected_box_ptr->max = unmodded_box.max;
                     selected_box_ptr->changeLength(box_hit_side, amount);
-                    manip.attachToBox(*selected_box_ptr);
                 }
+                if(clicking_on_manipulator)
+                {
+                    // TODO: figure out a way to fix movement drift
+                    float x_norm = cursor_movement_x / window_width * aspect_ratio;
+                    float y_norm = cursor_movement_y / window_height;
+                    Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+                    manip.moveBox(*selected_box_ptr, cursor_vec);
+                }
+                manip.attachToBox(*selected_box_ptr);                
             }else if(left_clicking && !g_input.left_click)
             {
                 left_clicking = false;
                 clicking_on_selected_box = false;
+                clicking_on_manipulator = false;
             }
 
         }else if(g_game_mode == PLAY)
@@ -601,6 +629,8 @@ int main()
             }
         }
 
+        last_cursor_x = cursor_x;
+        last_cursor_y = cursor_y;        
         //ImGui::Render();
 		glfwSwapBuffers(window); // Takes about 0.017 sec or 1/60 sec
 	}

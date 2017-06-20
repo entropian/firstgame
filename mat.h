@@ -301,6 +301,11 @@ struct Mat
                     );
         */
     }
+
+    Vec4 getColumn(const int a) const
+    {
+        return(Vec4(data[0][a], data[1][a], data[2][a], data[3][a]));
+    }
     void print()
     {
         for(int i = 0; i < rows; i++)

@@ -2,6 +2,7 @@
 #include <GL/glew.h>
 #include <vector>
 #include <iostream>
+#include <assert.h>
 #include "vec.h"
 #include "box.h"
 /*
@@ -84,6 +85,11 @@ public:
         // Z arrow
         bboxes[2].min = Vec3(-cone_radius, -cone_radius, 0.0f);
         bboxes[2].max = Vec3(cone_radius, cone_radius, cone_height + handle_length);
+
+        for(int i = 0; i < 3; i++)
+        {
+            arrow_bboxes_at_origin[i] = bboxes[i];
+        }
     }
 
     ~Manipulator()
@@ -119,6 +125,8 @@ public:
         glUseProgram(0);
     }
 
+    // Test whether ray hits any of the bounding boxes
+    // If yes, store which arrow was hit in hit_arrow
     bool rayIntersect(float& t, const Ray& ray)
     {
         int face;
@@ -128,19 +136,23 @@ public:
         if(x_arrow_t < y_arrow_t && x_arrow_t < z_arrow_t)
         {
             t = x_arrow_t;
+            hit_arrow = 0;
             return true;
         }else
         {
             if(y_arrow_t < z_arrow_t)
             {
                 t = y_arrow_t;
+                hit_arrow = 1;
                 return true;                
-            }else if(z_arrow_t > y_arrow_t)
+            }else if(z_arrow_t < y_arrow_t)
             {
                 t = z_arrow_t;
+                hit_arrow = 2;
                 return true;
             }
         }
+        hit_arrow = -1;
         return false;
     }
 
@@ -148,6 +160,20 @@ public:
     {
         Vec3 box_center = box.min + (box.max - box.min) * 0.5f;
         model_transform = Mat4::makeTranslation(box_center);
+        // TODO: move the bboxes as well
+        for(int i = 0; i < 3; i++)
+        {
+            bboxes[i].min = arrow_bboxes_at_origin[i].min + box_center;
+            bboxes[i].max = arrow_bboxes_at_origin[i].max + box_center;
+        }
+    }
+
+    void moveBox(Box& box, const Vec3& v)
+    {
+        assert(hit_arrow != -1);        
+        Vec3 movement_axis(model_transform.getColumn(hit_arrow));
+        float amount = dot(v, movement_axis) * 10.0f;
+        box.move(movement_axis * amount);        
     }
 
 private:
@@ -166,6 +192,10 @@ private:
     BBox bboxes[3];
     int num_vertices;
     int num_vert_per_cone, num_vert_per_arrow;
+    int hit_arrow;
     GLuint vao, vbo;
     GLuint shader_program;
+    static BBox arrow_bboxes_at_origin[3];
 };
+
+BBox Manipulator::arrow_bboxes_at_origin[3];
