@@ -30,26 +30,14 @@
 
 bool EXIT = false;
 
-float g_aspect_ratio = 0.0f;
-unsigned int g_window_width = 0;
-unsigned int g_window_height = 0;
-
-Camera *g_camera_ptr = NULL;
-Box *g_box_ptr = NULL;
-Box g_box_unmodded;
-int g_box_side = -1;
-
-float ship_length = 0.0f;
-
 // Game mode
-// 0 = play mode
-// 1 = edit mode
 enum GameMode
 {
     EDITOR,
     PLAY
 };
 GameMode g_game_mode = PLAY;
+bool g_mode_change = false;
 
 struct Input
 {
@@ -100,8 +88,6 @@ struct Input
     }
 };
 Input g_input;
-
-bool g_mode_change = false;
 
 void calcShipAccelState(int accel_states[3], Input& input)
 {    
@@ -290,7 +276,9 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
         {
             g_input.left_click = true;
             glfwGetCursorPos(window, &g_input.click_x, &g_input.click_y);
-            g_input.click_y = g_window_height - g_input.click_y;
+            int window_height, window_width;
+            glfwGetWindowSize(window, &window_width, &window_height);
+            g_input.click_y = window_height - g_input.click_y;
             std::cout << "xpos: " << g_input.click_x << " ypos: " << g_input.click_y << std::endl;
         }else if(action == GLFW_RELEASE)
         {
@@ -310,7 +298,9 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 
 void cursorPosCallback(GLFWwindow *window, double x, double y)
 {
-    double flipped_y = g_window_height - y;
+    int window_height, window_width;
+    glfwGetWindowSize(window, &window_width, &window_height);
+    double flipped_y = window_height - y;
     g_input.cursor_movement_x = x - g_input.cursor_x;
     g_input.cursor_movement_y = flipped_y - g_input.cursor_y;
     g_input.cursor_x = x;
@@ -323,9 +313,7 @@ void getNormalizedWindowCoord(float& x, float& y, const unsigned int x_pos, cons
 {
     int window_width = 0, window_height = 0;
     glfwGetWindowSize(window, &window_width, &window_height);
-    //unsigned flipped_y_pos = g_window_height - y_pos;
     x = (float)(x_pos - window_width/2.0f) / (window_width / 2.0f);
-    //y = (float)(flipped_y_pos - window_height/2.0f) / (window_height / 2.0f);
     y = (float)(y_pos - window_height/2.0f) / (window_height / 2.0f);
 }
 
@@ -365,8 +353,6 @@ int main()
 {
     unsigned int window_width = 720;
     unsigned int window_height = 720;
-    g_window_width = window_width;
-    g_window_height = window_height;
 	GLFWwindow *window = initWindow(window_width, window_height);
     glfwSetKeyCallback(window, keyCallback);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
@@ -385,17 +371,12 @@ int main()
         
     // Transforms
     float aspect_ratio  = (float)window_width / (float)window_height;
-    g_aspect_ratio = aspect_ratio;
     float fov = 90.0f;
     // NOTE: where to put proj_transform?
     Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));
     Camera camera(Vec3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 4.0f), fov, aspect_ratio);
     Vec3 editor_camera_pos, editor_camera_euler_ang;
-    g_camera_ptr = &camera;
     Mat4 view_transform = camera.getViewTransform();
-
-    printf("1\n");
-    view_transform.print();
 
     // Ship transforms
     //Mat4 ship_normal_transform = ((view_transform * model.inverse())).transpose();
@@ -429,15 +410,13 @@ int main()
 
     Manipulator manip(proj_transform);
     
-    bool left_clicking = false;
-    bool placing_object = false;
-    Vec3 tmp_color;
-    Vec3 raycast_hit_point;
+    Box *selected_box_ptr = NULL;
+    Box unmodded_box;
+    
     glEnable(GL_DEPTH_TEST);
     // TODO: back of boxes are completely transparent
-
 	while (!glfwWindowShouldClose(window) && !EXIT)
-	{        
+	{
         glfwPollEvents();
         gclock.update();
         float dt = gclock.getDtSeconds();
@@ -483,6 +462,8 @@ int main()
             // Keyboard
             moveCamera(camera, g_input, dt);
 
+            // Add new box to track
+            static bool placing_object = false;
             if(placing_object)
             {
                 if(g_input.n == 0)
@@ -497,7 +478,6 @@ int main()
                     // Place new box in track
                     // take camera z axis, move some distance forward, then project it on to the xz plane at y = 0
                     // make a box there
-                    // NOTE: not sure why camera z axis needs to be flipped
                     Vec3 camera_z_axis = -camera.getZAxis();
                     Vec3 camera_pos = camera.getPosition();
                     const float dist = 5.0f;
@@ -509,6 +489,10 @@ int main()
                 }
             }
 
+            static int box_hit_side = -1;
+            static Vec3 raycast_hit_point;
+            static Vec3 original_box_color;
+            static bool left_clicking = false;
             if(!left_clicking && g_input.left_click)
             {
                 float click_x, click_y;
@@ -517,41 +501,41 @@ int main()
 
                 // Intersection
                 float t;
-                g_box_ptr = track.rayIntersectTrack(g_box_side, t, ray);
-                if(g_box_ptr)
+                selected_box_ptr = track.rayIntersectTrack(box_hit_side, t, ray);
+                if(selected_box_ptr)
                 {   
-                    g_box_unmodded = *g_box_ptr;
-                    tmp_color = g_box_ptr->getColor();
-                    g_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
+                    unmodded_box = *selected_box_ptr;
+                    original_box_color = selected_box_ptr->getColor();
+                    selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
                     raycast_hit_point = ray.calcPoint(t);
-                    manip.attachToBox(*g_box_ptr);
+                    manip.attachToBox(*selected_box_ptr);
                 }                
                 std::cout << "t " << t << std::endl;
                 Vec3 hit_point = ray.origin + ray.dir * t;
                 printf("hit_point: %f, %f, %f\n", hit_point[0], hit_point[1], hit_point[2]); 
                 std::cout << std::endl;
                 left_clicking = true;
-            }else if(left_clicking && g_input.left_click && g_box_ptr)
+            }else if(left_clicking && g_input.left_click && selected_box_ptr)
             {
-                // g_box_ptr, g_input, g_window_width, g_window_height, g_aspect_ratio
-                // camera, g_box_unmodded
+                // selected_box_ptr, g_input, window_width, window_height, aspect_ratio
+                // camera, unmodded_box
                 double x_diff = g_input.cursor_x - g_input.click_x;
                 double y_diff = g_input.cursor_y - g_input.click_y;
-                float x_norm = x_diff / g_window_width * g_aspect_ratio;
-                float y_norm = y_diff / g_window_height;
-                Vec3 cursor_vec = Vec3(g_camera_ptr->getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
-                Vec3 box_normal = g_box_ptr->getSideNormal(g_box_side);
+                float x_norm = x_diff / window_width * aspect_ratio;
+                float y_norm = y_diff / window_height;
+                Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+                Vec3 box_normal = selected_box_ptr->getSideNormal(box_hit_side);
                 Vec3 cam_pos = camera.getPosition();
                 float dist_cam_to_hitpoint = fabs((cam_pos - raycast_hit_point).length());
                 float amount = dot(cursor_vec, box_normal) * dist_cam_to_hitpoint;
-                g_box_ptr->min = g_box_unmodded.min;
-                g_box_ptr->max = g_box_unmodded.max;
-                g_box_ptr->changeLength(g_box_side, amount);
+                selected_box_ptr->min = unmodded_box.min;
+                selected_box_ptr->max = unmodded_box.max;
+                selected_box_ptr->changeLength(box_hit_side, amount);
             }else if(left_clicking && !g_input.left_click)
             {
-                g_box_ptr->setColor(tmp_color);
-                g_box_ptr = nullptr;
-                g_box_unmodded = Box();
+                selected_box_ptr->setColor(original_box_color);
+                selected_box_ptr = nullptr;
+                unmodded_box = Box();
                 left_clicking = false;
             }
 
@@ -587,9 +571,9 @@ int main()
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             line_grid.draw();
             glDisable(GL_BLEND);
-            if(g_box_ptr)
+            if(selected_box_ptr)
             {
-                bwfd.drawWireframeOnBox(*g_box_ptr, view_transform);
+                bwfd.drawWireframeOnBox(*selected_box_ptr, view_transform);
                 glDisable(GL_DEPTH_TEST);
                 manip.draw(view_transform);
                 glEnable(GL_DEPTH_TEST);
