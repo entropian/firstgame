@@ -160,7 +160,6 @@ public:
     {
         Vec3 box_center = box.min + (box.max - box.min) * 0.5f;
         model_transform = Mat4::makeTranslation(box_center);
-        // TODO: move the bboxes as well
         for(int i = 0; i < 3; i++)
         {
             bboxes[i].min = arrow_bboxes_at_origin[i].min + box_center;

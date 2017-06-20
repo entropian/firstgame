@@ -5,7 +5,6 @@
   make the main game loop timestep based
   make ship velocity work with timestep
   add some kind of grid for track editing
-  lookat for camera
 */
 
 #include <GL/glew.h>
@@ -55,12 +54,8 @@ struct Input
     bool jump_request;
 
     // Mouse
-    double cursor_x;
-    double cursor_y;
     double click_x;
     double click_y;
-    double cursor_movement_x;
-    double cursor_movement_y;
     bool cursor_moved_last_frame;
 
     bool left_click;
@@ -78,10 +73,8 @@ struct Input
         n = 0;
         o = 0;
         jump_request = false;
-        cursor_x = 0.0;
-        cursor_y = 0.0;
-        cursor_movement_x = 0.0;
-        cursor_movement_y = 0.0;
+        click_x = 0;
+        click_y = 0;
         cursor_moved_last_frame = false;
         left_click = false;
         right_click = false;
@@ -298,13 +291,6 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 
 void cursorPosCallback(GLFWwindow *window, double x, double y)
 {
-    int window_height, window_width;
-    glfwGetWindowSize(window, &window_width, &window_height);
-    double flipped_y = window_height - y;
-    g_input.cursor_movement_x = x - g_input.cursor_x;
-    g_input.cursor_movement_y = flipped_y - g_input.cursor_y;
-    g_input.cursor_x = x;
-    g_input.cursor_y = flipped_y;
     g_input.cursor_moved_last_frame = true;
 }
 
@@ -411,16 +397,14 @@ int main()
     Manipulator manip(proj_transform);
     
     Box *selected_box_ptr = NULL;
-    Box unmodded_box;
     
     glEnable(GL_DEPTH_TEST);
-    // TODO: back of boxes are completely transparent
 	while (!glfwWindowShouldClose(window) && !EXIT)
 	{
         glfwPollEvents();
         gclock.update();
         float dt = gclock.getDtSeconds();
-
+        
         double cursor_x, cursor_y;
         glfwGetCursorPos(window, &cursor_x, &cursor_y);                    
         cursor_y = (double)window_height - cursor_y;
@@ -465,7 +449,7 @@ int main()
             // Mouse
             if(g_input.right_click && g_input.cursor_moved_last_frame)
             {
-                camera.turn(g_input.cursor_movement_x, g_input.cursor_movement_y);
+                camera.turn(cursor_movement_x, cursor_movement_y);
                 g_input.cursor_moved_last_frame = false;
             }
             // Keyboard
@@ -510,7 +494,6 @@ int main()
                 getNormalizedWindowCoord(click_x, click_y, g_input.click_x, g_input.click_y, window);
                 Ray ray = camera.calcRayFromScreenCoord(click_x, click_y);
 
-                // TODO: if a box is already selected, test ray against manipulator widget first.
                 float t;                
                 if(selected_box_ptr)
                 {
@@ -535,20 +518,17 @@ int main()
                                 selected_box_ptr->setColor(original_box_color);
                             }
                             selected_box_ptr = hit_box_ptr;
-                            unmodded_box = *selected_box_ptr;
                             original_box_color = selected_box_ptr->getColor();
                             selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
                             manip.attachToBox(*selected_box_ptr);
                         }else
                         {
                             clicking_on_selected_box = true;
-                            unmodded_box = *selected_box_ptr;
                         }
                     }else
                     {
                         selected_box_ptr->setColor(original_box_color);
                         selected_box_ptr = nullptr;
-                        unmodded_box = Box();
                     }
                 }
                 std::cout << "t " << t << std::endl;
@@ -558,10 +538,8 @@ int main()
                 left_clicking = true;
             }else if(left_clicking && g_input.left_click && selected_box_ptr)
             {
-                double x_diff = g_input.cursor_x - g_input.click_x;
-                double y_diff = g_input.cursor_y - g_input.click_y;
-                float x_norm = x_diff / window_width * aspect_ratio;
-                float y_norm = y_diff / window_height;
+                float x_norm = cursor_movement_x / window_width * aspect_ratio;
+                float y_norm = cursor_movement_y / window_height;
                 Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
                 Vec3 cam_pos = camera.getPosition();                
                 if(clicking_on_selected_box)
@@ -569,16 +547,10 @@ int main()
                     Vec3 box_normal = selected_box_ptr->getSideNormal(box_hit_side);
                     float dist_cam_to_hitpoint = fabs((cam_pos - raycast_hit_point).length());
                     float amount = dot(cursor_vec, box_normal) * dist_cam_to_hitpoint;
-                    selected_box_ptr->min = unmodded_box.min;
-                    selected_box_ptr->max = unmodded_box.max;
                     selected_box_ptr->changeLength(box_hit_side, amount);
                 }
                 if(clicking_on_manipulator)
                 {
-                    // TODO: figure out a way to fix movement drift
-                    float x_norm = cursor_movement_x / window_width * aspect_ratio;
-                    float y_norm = cursor_movement_y / window_height;
-                    Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
                     manip.moveBox(*selected_box_ptr, cursor_vec);
                 }
                 manip.attachToBox(*selected_box_ptr);                
