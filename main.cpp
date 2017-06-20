@@ -50,6 +50,7 @@ struct Input
     int q;
     int n;
     int o;
+    int b;
 
     bool jump_request;
 
@@ -196,6 +197,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             g_input.n = 1;
         } break;
+        case GLFW_KEY_B:
+        {
+            g_input.b = 1;
+        } break;        
         case GLFW_KEY_O:
         {
             g_input.o = 1;
@@ -253,6 +258,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             g_input.n = 0;
         } break;
+        case GLFW_KEY_B:
+        {
+            g_input.b = 0;
+        } break;        
         case GLFW_KEY_O:
         {
             g_input.o = 0;
@@ -451,6 +460,15 @@ int main()
                 std::cout << "Output file name: ";
                 std::cin >> output_file_name;
                 track.writeToFile(output_file_name.c_str());
+            }
+
+            if(g_input.b)
+            {
+                if(selected_box_ptr)
+                {
+                    track.removeBox(selected_box_ptr);
+                    selected_box_ptr = nullptr;
+                }
             }
 
             // Mouse

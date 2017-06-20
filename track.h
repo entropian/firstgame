@@ -39,6 +39,30 @@ public:
         boxes.push_back(box);
     }
 
+    bool removeBox(const Box* box_ptr)
+    {
+        bool found_box = false;
+        int i;
+        for(i = 0; i < boxes.size(); i++)
+        {
+            if(&(boxes[i]) == box_ptr)
+            {
+                found_box = true;
+                break;
+            }
+        }
+        if(found_box)
+        {
+            boxes[i].deleteBox();
+            for(int j = i; j < boxes.size() - 1; j++)
+            {
+                boxes[j] = boxes[j+1];
+            }
+            return true;
+        }
+        return false;
+    }
+
     int getNumBoxes()
     {
         return boxes.size();
