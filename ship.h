@@ -21,6 +21,7 @@ public:
     void calcVelocity(int accel_states[3]);
     void draw();
     Vec3 getPos() const;
+    void resetPosition();
 //private:
     GLuint vao, vbo, ibo, shader_program;
     // Texture handles
@@ -34,4 +35,7 @@ public:
     Vec3 velocity;
     Mat4 transform;
     bool grounded;
+    // TODO: move some members to private
+private:
+    Mat4 default_ship_transform;
 };

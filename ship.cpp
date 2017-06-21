@@ -139,6 +139,7 @@ Ship::Ship()
     // Initial rotation for pointing the ship at -z
     Mat4 rotation = Mat4::makeYRotation(180.0f) * Mat4::makeXRotation(90.0f);
     transform = rotation * translation;
+    default_ship_transform = transform;
     bbox.transform(transform);
     glUniformMatrix4fv(u_model_mat, 1, GL_TRUE, &(transform.data[0][0]));
 
@@ -356,4 +357,12 @@ void Ship::move(const Vec3& v)
 Vec3 Ship::getPos() const
 {
     return Vec3(transform(0, 3), transform(1, 3), transform(2, 3));
+}
+
+void Ship::resetPosition()
+{
+    Vec3 ship_pos = this->getPos();
+    bbox.min -= ship_pos;
+    bbox.max -= ship_pos;
+    transform = default_ship_transform;
 }

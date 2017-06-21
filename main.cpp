@@ -599,7 +599,12 @@ int main()
                 // Save editor mode camera pos and orientation
                 editor_camera_pos = camera.getPosition();
                 editor_camera_euler_ang = camera.getEulerAng();
+                camera.setPosAndOrientation(Vec3(), Vec3());
                 g_mode_change = false;
+            }
+            if(g_input.r == 1)
+            {
+                ship.resetPosition();
             }
             int accel_states[3];
             calcShipAccelState(accel_states, g_input);
