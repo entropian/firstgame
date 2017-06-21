@@ -41,7 +41,8 @@ bool g_mode_change = false;
 enum EditorAction
 {
     NONE,
-    WRITE_TO_FILE,
+    READ_FROM_FILE,
+    WRITE_TO_FILE,    
     REMOVE_SELECTED_BOX,
     COPY_SELECTED_BOX,
     ADD_NEW_BOX,
@@ -66,6 +67,7 @@ struct Input
     int b;
     int c;
     int g;
+    int p;
 
     bool jump_request;
 
@@ -88,6 +90,9 @@ struct Input
         q = 0;
         n = 0;
         o = 0;
+        c = 0;
+        g = 0;
+        p = 0;
         jump_request = false;
         click_x = 0;
         click_y = 0;
@@ -227,6 +232,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         case GLFW_KEY_G:
         {
             g_input.g = 1;
+        } break;
+        case GLFW_KEY_P:
+        {
+            g_input.p = 1;
         } break;        
         case GLFW_KEY_SPACE:
         {
@@ -296,7 +305,11 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         case GLFW_KEY_G:
         {
             g_input.g = 0;
-        } break;                
+        } break;
+        case GLFW_KEY_P:
+        {
+            g_input.p = 0;
+        } break;        
         }
     }
 }
@@ -576,6 +589,7 @@ int main()
                     editor_action = NONE;
                 }else
                 {
+                    // Keyboard actions
                     if(g_input.o)
                     {
                         editor_action = WRITE_TO_FILE;
@@ -592,6 +606,10 @@ int main()
                     {
                         editor_action = ADD_NEW_BOX;
                         last_active_key = &(g_input.n);
+                    }else if(g_input.p)
+                    {
+                        editor_action = READ_FROM_FILE;
+                        last_active_key = &(g_input.p);
                     }
                 }
             }
@@ -600,6 +618,14 @@ int main()
             {
             case NONE:
                 break;
+            case READ_FROM_FILE:
+            {
+                std::string input_file_name;
+                std::cout << "Input file name: ";
+                std::cin >> input_file_name;
+                track.deleteBoxes();
+                track.readFromFile(input_file_name.c_str());
+            } break;   
             case WRITE_TO_FILE:
             {
                 std::string output_file_name;

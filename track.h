@@ -191,6 +191,15 @@ public:
             boxes[i].deleteBox();
         }
     }
+
+    void deleteBoxes()
+    {
+        for(int i = 0; i < boxes.size(); i++)
+        {
+            boxes[i].deleteBox();
+        }
+        boxes.clear();
+    }
 private:
     std::vector<Box> boxes;
     GLuint shader_program;    
