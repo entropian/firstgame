@@ -160,8 +160,8 @@ public:
         displacement[2] += cam_to_ship_z_dist;
 
         pos[0] = 0.0f;
-        // TODO: put game mode camera height in a variable somewheren
-        pos[1] = 1.0f;
+        // TODO: put game mode camera height in a variable somewhere
+        pos[1] = 1.5f;
         pos[2] += displacement[2];
         camera_transform(0, 3) = pos[0];
         camera_transform(1, 3) = pos[1];

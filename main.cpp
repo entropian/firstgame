@@ -51,6 +51,7 @@ struct Input
     int n;
     int o;
     int b;
+    int c;
 
     bool jump_request;
 
@@ -204,6 +205,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         case GLFW_KEY_O:
         {
             g_input.o = 1;
+        } break;
+        case GLFW_KEY_C:
+        {
+            g_input.c = 1;
         } break;        
         case GLFW_KEY_SPACE:
         {
@@ -265,7 +270,11 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         case GLFW_KEY_O:
         {
             g_input.o = 0;
-        } break;                
+        } break;
+        case GLFW_KEY_C:
+        {
+            g_input.c = 0;
+        } break;        
         }
     }
 }
@@ -404,6 +413,7 @@ int main()
     BoxWireframeDrawer bwfd(proj_transform);
 
     Manipulator manip(proj_transform);
+    Vec3 original_box_color;
     
     Box *selected_box_ptr = NULL;
     
@@ -454,6 +464,7 @@ int main()
                 g_mode_change = false;
             }
 
+            // Writing track to file
             if(g_input.o)
             {
                 std::string output_file_name;
@@ -461,14 +472,20 @@ int main()
                 std::cin >> output_file_name;
                 track.writeToFile(output_file_name.c_str());
             }
-
-            if(g_input.b)
+            // Remove box from track
+            if(g_input.b && selected_box_ptr)
             {
-                if(selected_box_ptr)
-                {
-                    track.removeBox(selected_box_ptr);
-                    selected_box_ptr = nullptr;
-                }
+                track.removeBox(selected_box_ptr);
+                selected_box_ptr = nullptr;
+            }
+            // Copy selected box
+            if(g_input.c && selected_box_ptr)
+            {
+                selected_box_ptr->setColor(original_box_color);
+                Box new_box = selected_box_ptr->makeCopy();
+                original_box_color = new_box.getColor();
+                new_box.setColor(Vec3(1.0f, 105.0f / 255.0f, 180.0f / 255.0f));
+                selected_box_ptr = track.addBox(new_box);                
             }
 
             // Mouse
@@ -508,8 +525,7 @@ int main()
             }
 
             static int box_hit_side = -1;
-            static Vec3 raycast_hit_point;
-            static Vec3 original_box_color;
+            static Vec3 raycast_hit_point;            
             static bool left_clicking = false;
             static bool clicking_on_selected_box = false;
             static bool clicking_on_manipulator = false;

@@ -36,6 +36,11 @@ public:
         glDeleteVertexArrays(1, &vao);
     }
 
+    Box makeCopy()
+    {
+        return Box(min, max);
+    }
+
     Box(const Vec3& center, const float width, const float height, const float length)
     {
         float half_width = fabs(width) * 0.5f;

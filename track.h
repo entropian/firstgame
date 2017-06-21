@@ -33,10 +33,11 @@ public:
         glUseProgram(0);
     }
 
-    void addBox(Box& box)
+    Box* addBox(Box& box)
     {
         box.setShaderAndAttributes(shader_program);
         boxes.push_back(box);
+        return &(boxes[boxes.size() - 1]);
     }
 
     bool removeBox(const Box* box_ptr)
