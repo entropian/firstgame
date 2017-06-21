@@ -519,7 +519,13 @@ int main()
                     Vec3 box_center = camera_z_axis * dist + camera_pos;
                     box_center[1] = 0.0f;
                     Box new_box(box_center, 1.0f, 1.0f, 1.0f);
-                    track.addBox(new_box);
+                    if(selected_box_ptr)
+                    {
+                        selected_box_ptr->setColor(original_box_color);
+                    }
+                    selected_box_ptr = track.addBox(new_box);
+                    original_box_color = selected_box_ptr->getColor();
+                    selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
                     placing_object = true;
                 }
             }
@@ -561,7 +567,6 @@ int main()
                             selected_box_ptr = hit_box_ptr;
                             original_box_color = selected_box_ptr->getColor();
                             selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
-                            manip.attachToBox(*selected_box_ptr);
                         }else
                         {
                             clicking_on_selected_box = true;
@@ -597,7 +602,6 @@ int main()
                 {
                     manip.moveBox(*selected_box_ptr, cursor_vec);
                 }
-                manip.attachToBox(*selected_box_ptr);                
             }else if(left_clicking && !g_input.left_click)
             {
                 left_clicking = false;
@@ -645,6 +649,7 @@ int main()
             {
                 bwfd.drawWireframeOnBox(*selected_box_ptr, view_transform);
                 glDisable(GL_DEPTH_TEST);
+                manip.attachToBox(*selected_box_ptr);                                
                 manip.draw(view_transform);
                 glEnable(GL_DEPTH_TEST);
             }

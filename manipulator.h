@@ -18,8 +18,8 @@ public:
     Manipulator(const Mat4& proj_transform)
     {
         std::vector<Vec3> cone_verts;
-        const float cone_radius = 0.5f;
-        const float cone_height = 2.0f;
+        const float cone_radius = 0.25f;
+        const float cone_height = 1.25f;
         generateCone(cone_verts, cone_radius, cone_height);
         const float handle_length = 2.0f;
         num_vert_per_cone = cone_verts.size();
