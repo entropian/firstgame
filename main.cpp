@@ -38,6 +38,19 @@ enum GameMode
 GameMode g_game_mode = PLAY;
 bool g_mode_change = false;
 
+enum EditorAction
+{
+    NONE,
+    WRITE_TO_FILE,
+    REMOVE_SELECTED_BOX,
+    COPY_SELECTED_BOX,
+    ADD_NEW_BOX,
+    SELECT_BOX,
+    DESELECT,
+    CHANGE_BOX_LENGTH,
+    MOVE_SELECTED_BOX
+};
+
 struct Input
 {
     // Keyboard
@@ -52,6 +65,7 @@ struct Input
     int o;
     int b;
     int c;
+    int g;
 
     bool jump_request;
 
@@ -209,6 +223,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         case GLFW_KEY_C:
         {
             g_input.c = 1;
+        } break;
+        case GLFW_KEY_G:
+        {
+            g_input.g = 1;
         } break;        
         case GLFW_KEY_SPACE:
         {
@@ -274,7 +292,11 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         case GLFW_KEY_C:
         {
             g_input.c = 0;
-        } break;        
+        } break;
+        case GLFW_KEY_G:
+        {
+            g_input.g = 0;
+        } break;                
         }
     }
 }
@@ -424,13 +446,18 @@ int main()
         glfwPollEvents();
         gclock.update();
         float dt = gclock.getDtSeconds();
+        /*
         count++;
         if(count == 100)
         {
             printf("dt %f\n", dt);
             count = 0;
         }
-        
+        */
+		glClearColor(0.1f, 0.2f, 0.2f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);        
+
+        // cursor position and movement
         double cursor_x, cursor_y;
         glfwGetCursorPos(window, &cursor_x, &cursor_y);                    
         cursor_y = (double)window_height - cursor_y;
@@ -450,165 +477,205 @@ int main()
             if (ImGui::Button("Another Window")) show_another_window ^= 1;
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         }
-        */
-        
-		glClearColor(0.1f, 0.2f, 0.2f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        */        
         if(g_game_mode == EDITOR)
         {
-            // Process input            
             if(g_mode_change)
             {
                 // Changed mode from play to editor
                 camera.setPosAndOrientation(editor_camera_pos, editor_camera_euler_ang);
                 g_mode_change = false;
             }
+            // Camera movement
+            if(g_input.right_click && g_input.cursor_moved_last_frame)
+            {
+                camera.turn(cursor_movement_x, cursor_movement_y);
+                g_input.cursor_moved_last_frame = false;
+            }
+            moveCamera(camera, g_input, dt);
 
-            // Writing track to file
-            if(g_input.o)
+            static int box_hit_side = -1;
+            static Vec3 raycast_hit_point;            
+            Box* hit_box_ptr = nullptr;
+            EditorAction editor_action = NONE;
+            {
+                static bool left_clicking = false;
+                static bool clicking_on_selected_box = false;
+                static bool clicking_on_manipulator = false;
+                static int* last_active_key = nullptr;
+
+                if(last_active_key && !*(last_active_key))
+                {
+                    last_active_key = nullptr;
+                }
+                if(last_active_key && *(last_active_key)) 
+                {
+                    editor_action = NONE;
+                }else if(g_input.left_click)
+                {
+                    if(!left_clicking)
+                    {
+                        float click_x, click_y;
+                        getNormalizedWindowCoord(click_x, click_y, g_input.click_x, g_input.click_y, window);
+                        Ray ray = camera.calcRayFromScreenCoord(click_x, click_y);
+                        float t;
+                        if(selected_box_ptr)
+                        {
+                            if(manip.rayIntersect(t, ray))
+                            {
+                                clicking_on_manipulator = true;
+                                editor_action = NONE;
+                            }else
+                            {
+                                hit_box_ptr = track.rayIntersectTrack(box_hit_side, t, ray);
+                                if(!hit_box_ptr)
+                                {
+                                    editor_action = DESELECT;
+                                }else if(hit_box_ptr == selected_box_ptr)
+                                {
+                                    raycast_hit_point = ray.calcPoint(t);
+                                    clicking_on_selected_box = true;
+                                    editor_action = NONE;
+                                }else
+                                {
+                                    raycast_hit_point = ray.calcPoint(t);
+                                    editor_action = SELECT_BOX;
+                                }
+                            }
+                        }else
+                        {
+                            hit_box_ptr = track.rayIntersectTrack(box_hit_side, t, ray);
+                            if(!hit_box_ptr)
+                            {
+                                editor_action = NONE;
+                            }else
+                            {
+                                raycast_hit_point = ray.calcPoint(t);
+                                editor_action = SELECT_BOX;
+                            }               
+                        }
+                        left_clicking = true;
+                    }else
+                    {
+                        if(clicking_on_manipulator)
+                        {
+                            editor_action = MOVE_SELECTED_BOX;
+                        }else if(clicking_on_selected_box)
+                        {
+                            editor_action = CHANGE_BOX_LENGTH;
+                        }else
+                        {
+                            editor_action = NONE;
+                        }
+                    }
+                }else if(left_clicking && !g_input.left_click)
+                {
+                    clicking_on_manipulator = false;
+                    clicking_on_selected_box = false;
+                    left_clicking = false;
+                    editor_action = NONE;
+                }else
+                {
+                    if(g_input.o)
+                    {
+                        editor_action = WRITE_TO_FILE;
+                        last_active_key = &(g_input.o);
+                    }else if(g_input.b && selected_box_ptr)
+                    {
+                        editor_action = REMOVE_SELECTED_BOX;
+                        last_active_key = &(g_input.b);
+                    }else if(g_input.c && selected_box_ptr)
+                    {
+                        editor_action = COPY_SELECTED_BOX;
+                        last_active_key = &(g_input.c);
+                    }else if(g_input.n)
+                    {
+                        editor_action = ADD_NEW_BOX;
+                        last_active_key = &(g_input.n);
+                    }
+                }
+            }
+
+            switch(editor_action)
+            {
+            case NONE:
+                break;
+            case WRITE_TO_FILE:
             {
                 std::string output_file_name;
                 std::cout << "Output file name: ";
                 std::cin >> output_file_name;
                 track.writeToFile(output_file_name.c_str());
-            }
-            // Remove box from track
-            if(g_input.b && selected_box_ptr)
+            } break;
+            case REMOVE_SELECTED_BOX:
             {
                 track.removeBox(selected_box_ptr);
                 selected_box_ptr = nullptr;
-            }
-            // Copy selected box
-            if(g_input.c && selected_box_ptr)
+            } break;
+            case COPY_SELECTED_BOX:
             {
                 selected_box_ptr->setColor(original_box_color);
                 Box new_box = selected_box_ptr->makeCopy();
                 original_box_color = new_box.getColor();
                 new_box.setColor(Vec3(1.0f, 105.0f / 255.0f, 180.0f / 255.0f));
                 selected_box_ptr = track.addBox(new_box);                
-            }
-
-            // Mouse
-            if(g_input.right_click && g_input.cursor_moved_last_frame)
+            } break;
+            case ADD_NEW_BOX:
             {
-                camera.turn(cursor_movement_x, cursor_movement_y);
-                g_input.cursor_moved_last_frame = false;
-            }
-            // Keyboard
-            moveCamera(camera, g_input, dt);
-
-            // Add new box to track
-            static bool placing_object = false;
-            if(placing_object)
-            {
-                if(g_input.n == 0)
-                {
-                    placing_object = false;
-                }
-            }
-            if(!placing_object)
-            {
-                if(g_input.n == 1)
-                {
-                    // Place new box in track
-                    // take camera z axis, move some distance forward, then project it on to the xz plane at y = 0
-                    // make a box there
-                    Vec3 camera_z_axis = -camera.getZAxis();
-                    Vec3 camera_pos = camera.getPosition();
-                    const float dist = 5.0f;
-                    Vec3 box_center = camera_z_axis * dist + camera_pos;
-                    box_center[1] = 0.0f;
-                    Box new_box(box_center, 1.0f, 1.0f, 1.0f);
-                    if(selected_box_ptr)
-                    {
-                        selected_box_ptr->setColor(original_box_color);
-                    }
-                    selected_box_ptr = track.addBox(new_box);
-                    original_box_color = selected_box_ptr->getColor();
-                    selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
-                    placing_object = true;
-                }
-            }
-
-            static int box_hit_side = -1;
-            static Vec3 raycast_hit_point;            
-            static bool left_clicking = false;
-            static bool clicking_on_selected_box = false;
-            static bool clicking_on_manipulator = false;
-            if(!left_clicking && g_input.left_click)
-            {
-                float click_x, click_y;
-                getNormalizedWindowCoord(click_x, click_y, g_input.click_x, g_input.click_y, window);
-                Ray ray = camera.calcRayFromScreenCoord(click_x, click_y);
-
-                float t;                
+                // Place new box in track
+                // take camera z axis, move some distance forward, then project it on to the xz plane at y = 0
+                // make a box there
+                Vec3 camera_z_axis = -camera.getZAxis();
+                Vec3 camera_pos = camera.getPosition();
+                const float dist = 5.0f;
+                Vec3 box_center = camera_z_axis * dist + camera_pos;
+                box_center[1] = 0.0f;
+                Box new_box(box_center, 1.0f, 1.0f, 1.0f);
                 if(selected_box_ptr)
                 {
-                    if(manip.rayIntersect(t, ray))
-                    {
-                        clicking_on_manipulator = true;
-                        printf("clicking_on_manipulator = true;\n");
-                    }
+                    selected_box_ptr->setColor(original_box_color);
                 }
-                if(!clicking_on_manipulator)
+                selected_box_ptr = track.addBox(new_box);
+                original_box_color = selected_box_ptr->getColor();
+                selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
+            } break;
+            case SELECT_BOX:
+            {
+                if(selected_box_ptr)
                 {
-                    // Track intersection
-                    Box* hit_box_ptr = track.rayIntersectTrack(box_hit_side, t, ray);
-                    if(hit_box_ptr)
-                    {
-                    
-                        raycast_hit_point = ray.calcPoint(t);
-                        if(hit_box_ptr != selected_box_ptr)
-                        {
-                            if(selected_box_ptr)
-                            {
-                                selected_box_ptr->setColor(original_box_color);
-                            }
-                            selected_box_ptr = hit_box_ptr;
-                            original_box_color = selected_box_ptr->getColor();
-                            selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
-                        }else
-                        {
-                            clicking_on_selected_box = true;
-                        }
-                    }else
-                    {
-                        if(selected_box_ptr)
-                        {
-                            selected_box_ptr->setColor(original_box_color);
-                            selected_box_ptr = nullptr;
-                        }
-                    }
+                    selected_box_ptr->setColor(original_box_color);
                 }
-                std::cout << "t " << t << std::endl;
-                Vec3 hit_point = ray.origin + ray.dir * t;
-                printf("hit_point: %f, %f, %f\n", hit_point[0], hit_point[1], hit_point[2]); 
-                std::cout << std::endl;
-                left_clicking = true;
-            }else if(left_clicking && g_input.left_click && selected_box_ptr)
+                selected_box_ptr = hit_box_ptr;
+                original_box_color = selected_box_ptr->getColor();
+                selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
+            } break;
+            case DESELECT:
+            {
+                selected_box_ptr->setColor(original_box_color);
+                selected_box_ptr = nullptr;
+            } break;
+            case CHANGE_BOX_LENGTH:
             {
                 float x_norm = cursor_movement_x / window_width * aspect_ratio;
                 float y_norm = cursor_movement_y / window_height;
                 Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
                 Vec3 cam_pos = camera.getPosition();                
-                if(clicking_on_selected_box)
-                {
-                    Vec3 box_normal = selected_box_ptr->getSideNormal(box_hit_side);
-                    float dist_cam_to_hitpoint = fabs((cam_pos - raycast_hit_point).length());
-                    float amount = dot(cursor_vec, box_normal) * dist_cam_to_hitpoint;
-                    selected_box_ptr->changeLength(box_hit_side, amount);
-                }
-                if(clicking_on_manipulator)
-                {
-                    manip.moveBox(*selected_box_ptr, cursor_vec);
-                }
-            }else if(left_clicking && !g_input.left_click)
+                Vec3 box_normal = selected_box_ptr->getSideNormal(box_hit_side);
+                float dist_cam_to_hitpoint = fabs((cam_pos - raycast_hit_point).length());
+                float amount = dot(cursor_vec, box_normal) * dist_cam_to_hitpoint;
+                selected_box_ptr->changeLength(box_hit_side, amount);
+            } break;
+            case MOVE_SELECTED_BOX:
             {
-                left_clicking = false;
-                clicking_on_selected_box = false;
-                clicking_on_manipulator = false;
+                float x_norm = cursor_movement_x / window_width * aspect_ratio;
+                float y_norm = cursor_movement_y / window_height;
+                Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+                Vec3 cam_pos = camera.getPosition();
+                manip.moveBox(*selected_box_ptr, cursor_vec);
+            } break;
+            default:
+                break;
             }
-
         }else if(g_game_mode == PLAY)
         {
             // Update ship position and velocity based on velocity from last frame
