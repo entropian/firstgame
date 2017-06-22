@@ -405,8 +405,7 @@ int main()
     std::cout << "Number of texture units: " << num_tex_units << std::endl;
     
     // Light
-    Vec3 dir_light_1(normalize(Vec3(-1.0f, 1.0f, 1.0f)));
-    Vec3 dir_light_2(normalize(Vec3(1.0f, 1.0f, 1.0f)));
+    Vec3 dir_light(normalize(Vec3(0.7f, 2.0f, 1.0f)));
         
     // Transforms
     float aspect_ratio  = (float)window_width / (float)window_height;
@@ -420,7 +419,7 @@ int main()
     // Ship transforms
     //Mat4 ship_normal_transform = ((view_transform * model.inverse())).transpose();
     Ship ship;
-    ship.setStaticUniforms(proj_transform, dir_light_1, dir_light_2);
+    ship.setStaticUniforms(proj_transform, dir_light);
     ship.move(Vec3(0.0f, 2.0f, 0.0f));
 
     // Box transforms
@@ -429,8 +428,8 @@ int main()
 
     // Track stuff
     Track track;
-    track.setUniforms(transform, normal_transform, proj_transform, dir_light_1, dir_light_2);
-    track.readFromFile("tmp_track.txt");
+    track.setUniforms(transform, normal_transform, proj_transform, dir_light);
+    track.readFromFile("track1.txt");
     
     // Line grid
     LineGrid line_grid(1.0f, 0.0f, 500, view_transform, proj_transform);

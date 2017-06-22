@@ -15,8 +15,7 @@ public:
 
     // TODO: the name impliles all the uniforms are set
     void setUniforms(const Mat4& view_transform, const Mat4& normal_transform,
-                     const Mat4& proj_transform, const Vec3& dir_light_1,
-                     const Vec3& dir_light_2)
+                     const Mat4& proj_transform, const Vec3& dir_light)
     {
         glUseProgram(shader_program);
         GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
@@ -26,10 +25,8 @@ public:
         GLint normal_transform_handle = glGetUniformLocation(shader_program, "normal_mat");
         glUniformMatrix4fv(normal_transform_handle, 1, GL_TRUE, &(normal_transform.data[0][0]));
     
-        GLint dir_light_1_handle = glGetUniformLocation(shader_program, "dir_light_1");
-        glUniform3fv(dir_light_1_handle, 1, (const GLfloat*)(dir_light_1.data));
-        GLint dir_light_2_handle = glGetUniformLocation(shader_program, "dir_light_2");
-        glUniform3fv(dir_light_2_handle, 1, (const GLfloat*)(dir_light_2.data));
+        GLint dir_light_handle = glGetUniformLocation(shader_program, "dir_light");
+        glUniform3fv(dir_light_handle, 1, (const GLfloat*)(dir_light.data));
         glUseProgram(0);
     }
 

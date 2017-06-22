@@ -11,7 +11,7 @@ class Ship
 public:
     Ship();
     ~Ship();
-    void setStaticUniforms(const Mat4& proj_transform, const Vec3& dir_light_1, const Vec3& dir_light_2);
+    void setStaticUniforms(const Mat4& proj_transform, const Vec3& dir_light);
     void setViewTransform(const Mat4& view_transform);
     void updateDynamicUniforms(const Mat4& view_transform);
     void move(const Vec3& v);

@@ -190,21 +190,40 @@ struct BBox
         if(overlap_time_x < overlap_time_y)
         {
             least_overlap_time = overlap_time_x;
-            hit_direction = 0;
+            if(velocity[0] < 0)
+            {
+                hit_direction = 0;
+            }else
+            {
+                hit_direction = 1;
+            }
         }else
         {
             least_overlap_time = overlap_time_y;
-            hit_direction = 1;
+            if(velocity[1] < 0)
+            {
+                hit_direction = 2;
+            }else
+            {
+                hit_direction = 3;
+            }
         }
 
         if(overlap_time_z < least_overlap_time)
         {
             least_overlap_time = overlap_time_z;
-            hit_direction = 2;
+            if(velocity[2] < 0)
+            {
+                hit_direction = 4;
+            }else
+            {
+                hit_direction = 5;
+            }
         }
         return least_overlap_time;
     }
 
+    // TODO: delete this?
     float calcMinPenetration(int& axis_index, const BBox* b)
     {
         // Determine the absolute value of penetration in each axis

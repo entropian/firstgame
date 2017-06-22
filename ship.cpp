@@ -159,7 +159,7 @@ Ship::~Ship()
     glDeleteTextures(1, &normal_map);
 }
 
-void Ship::setStaticUniforms(const Mat4& proj_transform, const Vec3& dir_light_1, const Vec3& dir_light_2)
+void Ship::setStaticUniforms(const Mat4& proj_transform, const Vec3& dir_light)
 {
     glUseProgram(shader_program);
     GLint u_proj_mat = glGetUniformLocation(shader_program, "proj_mat");
@@ -169,10 +169,8 @@ void Ship::setStaticUniforms(const Mat4& proj_transform, const Vec3& dir_light_1
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, diffuse_map);
     glUniform1i(u_diffuse_map, 0);
-    GLint u_dir_light_1 = glGetUniformLocation(shader_program, "dir_light_1");
-    glUniform3fv(u_dir_light_1, 1, (const GLfloat*)(dir_light_1.data));
-    GLint u_dir_light_2 = glGetUniformLocation(shader_program, "dir_light_2");
-    glUniform3fv(u_dir_light_2, 1, (const GLfloat*)(dir_light_2.data));
+    GLint u_dir_light = glGetUniformLocation(shader_program, "dir_light");
+    glUniform3fv(u_dir_light, 1, (const GLfloat*)(dir_light.data));
     glUseProgram(0);
 }
 
@@ -225,32 +223,34 @@ void Ship::updatePosAndVelocity(const float dt, Track& track)
     }
 
     int collided = track.bboxCollideWithTrack(colliding_boxes, new_bbox);
+    grounded = false;
     for(int i = 0; collided > 0 && i < 3; i++)
     {
         int hit_dir = -1;
-        float overlap_time = FLT_MAX;
+        float overlap_time = -HUGEVALUE;
+
         for(int i = 0; i < collided; i++)
         {
             Box* track_box = colliding_boxes[i];
             int tmp_hit_dir;
-            float tmp_overlap_time = new_bbox.calcOverlapTime(tmp_hit_dir, track_box, velocity);            
-            if(tmp_overlap_time < overlap_time)
+            float tmp_overlap_time = new_bbox.calcOverlapTime(tmp_hit_dir, track_box, velocity);
+            if(tmp_hit_dir == 2)
+            {
+                grounded = true;
+            }
+            if(tmp_overlap_time > overlap_time)
             {
                 overlap_time = tmp_overlap_time;
                 hit_dir = tmp_hit_dir;
             }
         }
-        if(overlap_time < FLT_MAX)
+        if(overlap_time > -HUGEVALUE)
         {
             //printf("dt %f\n", dt);
             //printf("overlap_time %f\n", overlap_time);
             dp = velocity * (dt - overlap_time - (dt * 0.05f));
-            velocity[hit_dir] = 0.0f;
+            velocity[hit_dir/2] = 0.0f; // hit_dir can take on values from 0-5
             dp += velocity * (overlap_time + (dt * 0.05f));
-            if(hit_dir == 1)
-            {
-                grounded = true;
-            }
         }
         new_bbox.min = bbox.min + dp;
         new_bbox.max = bbox.max + dp;

@@ -18,7 +18,7 @@ public:
     }
     
     Box(const Vec3& a, const Vec3& b)
-        :BBox(a, b), color(0.7f, 0.7f, 0.7f)
+        :BBox(a, b), color(1.0f, 1.0f, 1.0f)
     {
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
