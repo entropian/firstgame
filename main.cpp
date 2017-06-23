@@ -48,7 +48,9 @@ enum EditorAction
     COPY_SELECTED_BOX,
     ADD_NEW_BOX,
     SELECT_BOX,
+    ADD_SELECT,
     DESELECT,
+    //DESELECT_ALL,
     CHANGE_BOX_LENGTH,
     MOVE_SELECTED_BOX
 };
@@ -69,6 +71,8 @@ struct Input
     int c;
     int g;
     int p;
+
+    int left_ctrl;
 
     bool jump_request;
 
@@ -94,6 +98,7 @@ struct Input
         c = 0;
         g = 0;
         p = 0;
+        left_ctrl = 0;
         jump_request = false;
         click_x = 0;
         click_y = 0;
@@ -242,6 +247,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             g_input.jump_request = true;
         } break;
+        case GLFW_KEY_LEFT_CONTROL:
+        {
+            g_input.left_ctrl = 1;
+        } break;
         }
     }else if(action == GLFW_RELEASE)
     {
@@ -310,6 +319,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         case GLFW_KEY_P:
         {
             g_input.p = 0;
+        } break;
+        case GLFW_KEY_LEFT_CONTROL:
+        {
+            g_input.left_ctrl = 0;
         } break;        
         }
     }
@@ -551,14 +564,21 @@ int main()
                                     raycast_hit_point = ray.calcPoint(t);
                                     clicking_on_selected_box = true;
                                     editor_action = NONE;
+                                    // TODO if left_ctrl deselect
                                 }else
                                 {
                                     raycast_hit_point = ray.calcPoint(t);
-                                    editor_action = SELECT_BOX;
+                                    if(g_input.left_ctrl)
+                                    {
+                                        editor_action = ADD_SELECT;
+                                    }else
+                                    {
+                                        editor_action = SELECT_BOX;
+                                    }
                                 }
                             }
-                        }else
-                        {
+                        }else // Nothing is selected at the moment
+                        {                            
                             hit_box_ptr = track.rayIntersectTrack(box_hit_side, t, ray);
                             if(!hit_box_ptr)
                             {
@@ -570,7 +590,7 @@ int main()
                             }               
                         }
                         left_clicking = true;
-                    }else
+                    }else // Holding down left click
                     {
                         if(clicking_on_manipulator)
                         {
@@ -681,7 +701,6 @@ int main()
                 //if(selected_box_ptr)
                 if(selected.getNumSelected()> 0)
                 {
-                    // NOTE deselecting previously selected boxes is just a temporary thing
                     //selected_box_ptr->setColor(original_box_color);
                     selected.deselectAll();
                 }
@@ -690,6 +709,10 @@ int main()
                 original_box_color = selected_box_ptr->getColor();
                 selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
                 */
+                selected.select(hit_box_ptr);
+            } break;
+            case ADD_SELECT:
+            {
                 selected.select(hit_box_ptr);
             } break;
             case DESELECT:
