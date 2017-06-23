@@ -9,16 +9,18 @@
 #include <fstream>
 #include <sstream>
 
+static unsigned int box_id = 0;
+
 class Box : public BBox
 {
 public:
     Box()
-        :BBox()
+        :BBox(), id(box_id++)
     {
     }
     
     Box(const Vec3& a, const Vec3& b)
-        :BBox(a, b), color(1.0f, 1.0f, 1.0f)
+        :BBox(a, b), color(1.0f, 1.0f, 1.0f), id(box_id++)
     {
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
@@ -30,7 +32,7 @@ public:
     }
 
     Box(const Vec3& a, const Vec3& b, const Vec3& c)
-        :BBox(a, b), color(c)
+        :BBox(a, b), color(c), id(box_id++)
     {
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
@@ -214,6 +216,11 @@ public:
     {
         color = c;
     }
+
+    unsigned int getID()
+    {
+        return id;
+    }
     
 private:
     void constructBox()
@@ -329,6 +336,7 @@ private:
     }
     
     int num_vertices;
+    unsigned int id;
     GLuint vao, vbo, ibo;
     GLuint shader_program;
     Vec3 color;

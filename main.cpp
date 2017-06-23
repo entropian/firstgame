@@ -50,7 +50,7 @@ enum EditorAction
     SELECT_BOX,
     ADD_SELECT,
     DESELECT,
-    //DESELECT_ALL,
+    DESELECT_ALL,
     CHANGE_BOX_LENGTH,
     MOVE_SELECTED_BOX
 };
@@ -470,6 +470,7 @@ int main()
     int count = 0;
 	while (!glfwWindowShouldClose(window) && !EXIT)
 	{
+        printf("track num boxes %d\n", track.getNumBoxes());
         glfwPollEvents();
         gclock.update();
         float dt = gclock.getDtSeconds();
@@ -557,14 +558,24 @@ int main()
                                 hit_box_ptr = track.rayIntersectTrack(box_hit_side, t, ray);
                                 if(!hit_box_ptr)
                                 {
-                                    editor_action = DESELECT;
-                                    //}else if(hit_box_ptr == selected_box_ptr)
+                                    if(g_input.left_ctrl)
+                                    {
+                                        editor_action = NONE;
+                                    }else
+                                    {
+                                        editor_action = DESELECT_ALL;
+                                    }
                                 }else if(selected.find(hit_box_ptr))
                                 {
-                                    raycast_hit_point = ray.calcPoint(t);
-                                    clicking_on_selected_box = true;
-                                    editor_action = NONE;
-                                    // TODO if left_ctrl deselect
+                                    if(g_input.left_ctrl)
+                                    {
+                                        editor_action = DESELECT;
+                                    }else
+                                    {
+                                        raycast_hit_point = ray.calcPoint(t);
+                                        clicking_on_selected_box = true;
+                                        editor_action = NONE;
+                                    }
                                 }else
                                 {
                                     raycast_hit_point = ray.calcPoint(t);
@@ -716,6 +727,10 @@ int main()
                 selected.select(hit_box_ptr);
             } break;
             case DESELECT:
+            {
+                selected.deselect(hit_box_ptr);
+            } break;
+            case DESELECT_ALL:
             {
                 /*
                 selected_box_ptr->setColor(original_box_color);

@@ -9,6 +9,7 @@ class Track
 {
 public:
     Track()
+        :num_boxes(0)
     {
         shader_program = loadAndLinkShaders("shaders/box.vs", "shaders/box.fs");
     }
@@ -34,6 +35,7 @@ public:
     {
         box.setShaderAndAttributes(shader_program);
         boxes.push_back(box);
+        num_boxes++;
         return &(boxes[boxes.size() - 1]);
     }
 
@@ -41,7 +43,7 @@ public:
     {
         bool found_box = false;
         int i;
-        for(i = 0; i < boxes.size(); i++)
+        for(i = 0; i < num_boxes; i++)
         {
             if(&(boxes[i]) == box_ptr)
             {
@@ -56,6 +58,7 @@ public:
             {
                 boxes[j] = boxes[j+1];
             }
+            num_boxes--;
             return true;
         }
         return false;
@@ -63,7 +66,7 @@ public:
 
     int getNumBoxes()
     {
-        return boxes.size();
+        return num_boxes;
     }
 
     Box* rayIntersectTrack(int& face, float& t, const Ray& ray)
@@ -176,7 +179,6 @@ public:
             output << boxes[i].max[1] << " ";
             output << boxes[i].max[2] << "\n";
         }
-
         output.close();
     }
 
@@ -196,8 +198,10 @@ public:
             boxes[i].deleteBox();
         }
         boxes.clear();
+        num_boxes = 0;
     }
 private:
+    int num_boxes;
     std::vector<Box> boxes;
     GLuint shader_program;    
 };
