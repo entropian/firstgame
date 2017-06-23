@@ -29,6 +29,18 @@ public:
         num_vertices = 36;        
     }
 
+    Box(const Vec3& a, const Vec3& b, const Vec3& c)
+        :BBox(a, b), color(c)
+    {
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        constructBox();
+        glBindVertexArray(0);        
+        num_vertices = 36;        
+    }    
+
     void deleteBox()
     {
         glDeleteBuffers(1, &vbo);
@@ -38,7 +50,7 @@ public:
 
     Box makeCopy()
     {
-        return Box(min, max);
+        return Box(min, max, color);
     }
 
     Box(const Vec3& center, const float width, const float height, const float length)

@@ -223,6 +223,7 @@ struct BBox
         return least_overlap_time;
     }
 
+
     // TODO: delete this?
     float calcMinPenetration(int& axis_index, const BBox* b)
     {
@@ -273,6 +274,11 @@ struct BBox
         }
         axis_index = min_index;
         return min_penetration;
+    }
+
+    Vec3 getCenter()
+    {
+        return min + (max - min) * 0.5f;
     }
 
     Vec3 min, max;

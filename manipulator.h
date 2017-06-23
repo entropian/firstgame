@@ -5,6 +5,7 @@
 #include <assert.h>
 #include "vec.h"
 #include "box.h"
+#include "selected.h"
 /*
   The stick part of the arrow could just be a line
   Cone part of the arrow should be drawn as a triangle fan
@@ -167,12 +168,30 @@ public:
         }
     }
 
+    void moveTo(const Vec3& v)
+    {
+        model_transform = Mat4::makeTranslation(v);
+        for(int i = 0; i < 3; i++)
+        {
+            bboxes[i].min = arrow_bboxes_at_origin[i].min + v;
+            bboxes[i].max = arrow_bboxes_at_origin[i].max + v;
+        }
+    }
+
     void moveBox(Box& box, const Vec3& v)
     {
         assert(hit_arrow != -1);        
         Vec3 movement_axis(model_transform.getColumn(hit_arrow));
         float amount = dot(v, movement_axis) * 10.0f;
         box.move(movement_axis * amount);        
+    }
+
+    void moveSelected(Selected& selected, const Vec3& v)
+    {
+        assert(hit_arrow != -1);        
+        Vec3 movement_axis(model_transform.getColumn(hit_arrow));
+        float amount = dot(v, movement_axis) * 10.0f;
+        selected.move(movement_axis * amount);        
     }
 
 private:

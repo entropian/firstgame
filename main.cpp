@@ -26,6 +26,7 @@
 #include "globalclock.h"
 #include "linegrid.h"
 #include "manipulator.h"
+#include "selected.h"
 
 bool EXIT = false;
 
@@ -449,7 +450,8 @@ int main()
     Manipulator manip(proj_transform);
     Vec3 original_box_color;
     
-    Box *selected_box_ptr = NULL;
+    //Box *selected_box_ptr = NULL;
+    Selected selected(track, proj_transform);
     
     glEnable(GL_DEPTH_TEST);
     int count = 0;
@@ -531,7 +533,7 @@ int main()
                         getNormalizedWindowCoord(click_x, click_y, g_input.click_x, g_input.click_y, window);
                         Ray ray = camera.calcRayFromScreenCoord(click_x, click_y);
                         float t;
-                        if(selected_box_ptr)
+                        if(selected.getNumSelected() > 0)
                         {
                             if(manip.rayIntersect(t, ray))
                             {
@@ -543,7 +545,8 @@ int main()
                                 if(!hit_box_ptr)
                                 {
                                     editor_action = DESELECT;
-                                }else if(hit_box_ptr == selected_box_ptr)
+                                    //}else if(hit_box_ptr == selected_box_ptr)
+                                }else if(selected.find(hit_box_ptr))
                                 {
                                     raycast_hit_point = ray.calcPoint(t);
                                     clicking_on_selected_box = true;
@@ -593,11 +596,11 @@ int main()
                     {
                         editor_action = WRITE_TO_FILE;
                         last_active_key = &(g_input.o);
-                    }else if(g_input.b && selected_box_ptr)
+                    }else if(g_input.b && selected.getNumSelected()> 0)
                     {
                         editor_action = REMOVE_SELECTED_BOX;
                         last_active_key = &(g_input.b);
-                    }else if(g_input.c && selected_box_ptr)
+                    }else if(g_input.c && selected.getNumSelected()> 0)
                     {
                         editor_action = COPY_SELECTED_BOX;
                         last_active_key = &(g_input.c);
@@ -634,16 +637,20 @@ int main()
             } break;
             case REMOVE_SELECTED_BOX:
             {
-                track.removeBox(selected_box_ptr);
-                selected_box_ptr = nullptr;
+                //track.removeBox(selected_box_ptr);
+                //selected_box_ptr = nullptr;
+                selected.remove();
             } break;
             case COPY_SELECTED_BOX:
             {
+                /*
                 selected_box_ptr->setColor(original_box_color);
                 Box new_box = selected_box_ptr->makeCopy();
                 original_box_color = new_box.getColor();
                 new_box.setColor(Vec3(1.0f, 105.0f / 255.0f, 180.0f / 255.0f));
-                selected_box_ptr = track.addBox(new_box);                
+                selected_box_ptr = track.addBox(new_box);
+                */
+                selected.copyAndSelect();
             } break;
             case ADD_NEW_BOX:
             {
@@ -656,28 +663,42 @@ int main()
                 Vec3 box_center = camera_z_axis * dist + camera_pos;
                 box_center[1] = 0.0f;
                 Box new_box(box_center, 1.0f, 1.0f, 1.0f);
-                if(selected_box_ptr)
+                //if(selected_box_ptr)
+                if(selected.getNumSelected()> 0)
                 {
-                    selected_box_ptr->setColor(original_box_color);
+                    //selected_box_ptr->setColor(original_box_color);
+                    selected.deselectAll();
                 }
+                /*
                 selected_box_ptr = track.addBox(new_box);
                 original_box_color = selected_box_ptr->getColor();
                 selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
+                */
+                selected.select(track.addBox(new_box));
             } break;
             case SELECT_BOX:
             {
-                if(selected_box_ptr)
+                //if(selected_box_ptr)
+                if(selected.getNumSelected()> 0)
                 {
-                    selected_box_ptr->setColor(original_box_color);
+                    // NOTE deselecting previously selected boxes is just a temporary thing
+                    //selected_box_ptr->setColor(original_box_color);
+                    selected.deselectAll();
                 }
+                /*
                 selected_box_ptr = hit_box_ptr;
                 original_box_color = selected_box_ptr->getColor();
                 selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
+                */
+                selected.select(hit_box_ptr);
             } break;
             case DESELECT:
             {
+                /*
                 selected_box_ptr->setColor(original_box_color);
                 selected_box_ptr = nullptr;
+                */
+                selected.deselectAll();
             } break;
             case CHANGE_BOX_LENGTH:
             {
@@ -685,10 +706,12 @@ int main()
                 float y_norm = cursor_movement_y / window_height;
                 Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
                 Vec3 cam_pos = camera.getPosition();                
-                Vec3 box_normal = selected_box_ptr->getSideNormal(box_hit_side);
+                //Vec3 box_normal = selected_box_ptr->getSideNormal(box_hit_side);
+                Vec3 box_normal = selected.getSideNormal(box_hit_side);
                 float dist_cam_to_hitpoint = fabs((cam_pos - raycast_hit_point).length());
                 float amount = dot(cursor_vec, box_normal) * dist_cam_to_hitpoint;
-                selected_box_ptr->changeLength(box_hit_side, amount);
+                //selected_box_ptr->changeLength(box_hit_side, amount);
+                selected.changeLength(box_hit_side, amount);
             } break;
             case MOVE_SELECTED_BOX:
             {
@@ -696,7 +719,8 @@ int main()
                 float y_norm = cursor_movement_y / window_height;
                 Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
                 Vec3 cam_pos = camera.getPosition();
-                manip.moveBox(*selected_box_ptr, cursor_vec);
+                //manip.moveBox(*selected_box_ptr, cursor_vec);
+                manip.moveSelected(selected, cursor_vec);
             } break;
             default:
                 break;
@@ -737,11 +761,17 @@ int main()
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             line_grid.draw();
             glDisable(GL_BLEND);
-            if(selected_box_ptr)
+            //if(selected_box_ptr)
+            if(selected.getNumSelected()> 0)
             {
-                bwfd.drawWireframeOnBox(*selected_box_ptr, view_transform);
+                //bwfd.drawWireframeOnBox(*selected_box_ptr, view_transform);
+                for(int i = 0; i < selected.getNumSelected(); i++)
+                {
+                    bwfd.drawWireframeOnBox(*(selected.getBoxPtr(i)), view_transform);
+                }
                 glDisable(GL_DEPTH_TEST);
-                manip.attachToBox(*selected_box_ptr);                                
+                //manip.attachToBox(*selected_box_ptr);
+                manip.moveTo(selected.getCenter());
                 manip.draw(view_transform);
                 glEnable(GL_DEPTH_TEST);
             }
