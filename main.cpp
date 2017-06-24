@@ -470,7 +470,6 @@ int main()
     int count = 0;
 	while (!glfwWindowShouldClose(window) && !EXIT)
 	{
-        printf("track num boxes %d\n", track.getNumBoxes());
         glfwPollEvents();
         gclock.update();
         float dt = gclock.getDtSeconds();
@@ -492,7 +491,7 @@ int main()
         static double last_cursor_x = cursor_x;
         static double last_cursor_y = cursor_y;
         float cursor_movement_x = cursor_x - last_cursor_x;
-        float cursor_movement_y = cursor_y - last_cursor_y;        
+        float cursor_movement_y = cursor_y - last_cursor_y;
         
         /*
         ImGui_ImplGlfwGL3_NewFrame();
@@ -524,7 +523,8 @@ int main()
 
             static int box_hit_side = -1;
             static Vec3 raycast_hit_point;            
-            Box* hit_box_ptr = nullptr;
+            //Box* hit_box_ptr = nullptr;
+            int hit_box_index = -1;
             EditorAction editor_action = NONE;
             {
                 static bool left_clicking = false;
@@ -555,8 +555,9 @@ int main()
                                 editor_action = NONE;
                             }else
                             {
-                                hit_box_ptr = track.rayIntersectTrack(box_hit_side, t, ray);
-                                if(!hit_box_ptr)
+                                //hit_box_ptr = track.rayIntersectTrack(box_hit_side, t, ray);
+                                hit_box_index = track.rayIntersectTrack(box_hit_side, t, ray);
+                                if(hit_box_index == -1)
                                 {
                                     if(g_input.left_ctrl)
                                     {
@@ -565,7 +566,8 @@ int main()
                                     {
                                         editor_action = DESELECT_ALL;
                                     }
-                                }else if(selected.find(hit_box_ptr))
+                                    //}else if(selected.find(hit_box_ptr))
+                                }else if(selected.hasIndex(hit_box_index))
                                 {
                                     if(g_input.left_ctrl)
                                     {
@@ -590,8 +592,9 @@ int main()
                             }
                         }else // Nothing is selected at the moment
                         {                            
-                            hit_box_ptr = track.rayIntersectTrack(box_hit_side, t, ray);
-                            if(!hit_box_ptr)
+                            //hit_box_ptr = track.rayIntersectTrack(box_hit_side, t, ray);
+                            hit_box_index = track.rayIntersectTrack(box_hit_side, t, ray);
+                            if(hit_box_index == -1)
                             {
                                 editor_action = NONE;
                             }else
@@ -646,7 +649,10 @@ int main()
                     }
                 }
             }
-
+            if(hit_box_index != -1)
+            {
+                printf("hit_box_index %d\n", hit_box_index);
+            }
             switch(editor_action)
             {
             case NONE:
@@ -668,19 +674,10 @@ int main()
             } break;
             case REMOVE_SELECTED_BOX:
             {
-                //track.removeBox(selected_box_ptr);
-                //selected_box_ptr = nullptr;
                 selected.remove();
             } break;
             case COPY_SELECTED_BOX:
             {
-                /*
-                selected_box_ptr->setColor(original_box_color);
-                Box new_box = selected_box_ptr->makeCopy();
-                original_box_color = new_box.getColor();
-                new_box.setColor(Vec3(1.0f, 105.0f / 255.0f, 180.0f / 255.0f));
-                selected_box_ptr = track.addBox(new_box);
-                */
                 selected.copyAndSelect();
             } break;
             case ADD_NEW_BOX:
@@ -694,48 +691,33 @@ int main()
                 Vec3 box_center = camera_z_axis * dist + camera_pos;
                 box_center[1] = 0.0f;
                 Box new_box(box_center, 1.0f, 1.0f, 1.0f);
-                //if(selected_box_ptr)
                 if(selected.getNumSelected()> 0)
                 {
-                    //selected_box_ptr->setColor(original_box_color);
                     selected.deselectAll();
                 }
-                /*
-                selected_box_ptr = track.addBox(new_box);
-                original_box_color = selected_box_ptr->getColor();
-                selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
-                */
                 selected.select(track.addBox(new_box));
             } break;
             case SELECT_BOX:
             {
-                //if(selected_box_ptr)
                 if(selected.getNumSelected()> 0)
                 {
-                    //selected_box_ptr->setColor(original_box_color);
                     selected.deselectAll();
                 }
-                /*
-                selected_box_ptr = hit_box_ptr;
-                original_box_color = selected_box_ptr->getColor();
-                selected_box_ptr->setColor(Vec3(0.5f, 0.5f, 0.5f));
-                */
-                selected.select(hit_box_ptr);
+                //selected.select(hit_box_ptr);
+                selected.select(hit_box_index);
             } break;
             case ADD_SELECT:
             {
-                selected.select(hit_box_ptr);
+                //selected.select(hit_box_ptr);
+                selected.select(hit_box_index);
             } break;
             case DESELECT:
             {
-                selected.deselect(hit_box_ptr);
+                //selected.deselect(hit_box_ptr);
+                selected.deselect(hit_box_index);
             } break;
             case DESELECT_ALL:
             {
-                /*
-                selected_box_ptr->setColor(original_box_color);
-                selected_box_ptr = nullptr;
-                */
                 selected.deselectAll();
             } break;
             case CHANGE_BOX_LENGTH:
@@ -805,7 +787,7 @@ int main()
                 //bwfd.drawWireframeOnBox(*selected_box_ptr, view_transform);
                 for(int i = 0; i < selected.getNumSelected(); i++)
                 {
-                    bwfd.drawWireframeOnBox(*(selected.getBoxPtr(i)), view_transform);
+                    bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
                 }
                 glDisable(GL_DEPTH_TEST);
                 //manip.attachToBox(*selected_box_ptr);

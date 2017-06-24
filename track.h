@@ -9,7 +9,6 @@ class Track
 {
 public:
     Track()
-        :num_boxes(0)
     {
         shader_program = loadAndLinkShaders("shaders/box.vs", "shaders/box.fs");
     }
@@ -31,19 +30,19 @@ public:
         glUseProgram(0);
     }
 
-    Box* addBox(Box& box)
+    int addBox(Box& box)
     {
         box.setShaderAndAttributes(shader_program);
         boxes.push_back(box);
-        num_boxes++;
-        return &(boxes[boxes.size() - 1]);
+        //return &(boxes[boxes.size() - 1]);
+        return boxes.size() - 1;
     }
 
     bool removeBox(const Box* box_ptr)
     {
         bool found_box = false;
         int i;
-        for(i = 0; i < num_boxes; i++)
+        for(i = 0; i < boxes.size(); i++)
         {
             if(&(boxes[i]) == box_ptr)
             {
@@ -54,11 +53,17 @@ public:
         if(found_box)
         {
             boxes[i].deleteBox();
-            for(int j = i; j < boxes.size() - 1; j++)
-            {
-                boxes[j] = boxes[j+1];
-            }
-            num_boxes--;
+            boxes.erase(boxes.begin()+i);
+            return true;
+        }
+        return false;
+    }
+
+    bool removeBox(const int index)
+    {
+        if(index > -1 && boxes.size() > index)
+        {
+            boxes.erase(boxes.begin() + index);
             return true;
         }
         return false;
@@ -66,10 +71,16 @@ public:
 
     int getNumBoxes()
     {
-        return num_boxes;
+        return boxes.size();
     }
 
-    Box* rayIntersectTrack(int& face, float& t, const Ray& ray)
+    Box& getBoxAtIndex(const int index)
+    {
+        return boxes[index];
+    }
+
+    //Box* rayIntersectTrack(int& face, float& t, const Ray& ray)
+    int rayIntersectTrack(int& face, float& t, const Ray& ray)
     {
         float min_t = TMAX;
         int index = -1, min_face = -1;
@@ -88,9 +99,11 @@ public:
         t = min_t;
         if(index != -1)
         {
-            return &(boxes[index]);
+            //return &(boxes[index]);
+            return index;
         }
-        return nullptr;
+        //return nullptr;
+        return -1;
     }
 
     // Determine if ship bbox collide with track
@@ -198,10 +211,8 @@ public:
             boxes[i].deleteBox();
         }
         boxes.clear();
-        num_boxes = 0;
     }
 private:
-    int num_boxes;
     std::vector<Box> boxes;
     GLuint shader_program;    
 };
