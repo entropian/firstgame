@@ -9,8 +9,8 @@
 class Selected
 {
 public:
-    Selected(Track& t, const Mat4& proj_transform)
-        :track(t), wireframe_drawer(proj_transform), selected_color(0.5f, 0.5f, 0.5f)
+    Selected(Track& t)
+        :track(t), selected_color(0.5f, 0.5f, 0.5f)
     {}
 
     bool rayIntersect(float &t, int& hit_side, const Ray& ray)
@@ -75,6 +75,7 @@ public:
             track.getBoxAtIndex(box_indices[i]).changeLength(side_num, amount);
         }
         // TODO: bound_all
+        bound_all.changeLength(side_num, amount);
     }
 
     void move(const Vec3& v)
@@ -123,7 +124,6 @@ public:
         return true;
     }
 
-    // TODO change pointer to index
     bool hasIndex(const int index)
     {
         for(int i = 0; i < box_indices.size(); i++)
@@ -136,7 +136,6 @@ public:
         return false;
     }
 
-    //bool deselect(const Box* box)
     bool deselect(const int index)
     {
         for(int i = 0; i < box_indices.size(); i++)
@@ -144,15 +143,6 @@ public:
             if(box_indices[i] == index)
             {
                 track.getBoxAtIndex(box_indices[i]).setColor(box_colors[i]);
-                /*
-                for(int j = i; j < box_indices.size()-1; j++)
-                {
-                    selected_boxes[j] = selected_boxes[j+1];
-                    box_colors[j] = box_colors[j+1];
-                }
-                */
-                //selected_boxes.erase(selected_boxes.end() - 1);
-                //box_colors.erase(box_colors.end() - 1);
                 box_indices.erase(box_indices.begin() + i);
                 box_colors.erase(box_colors.begin() + i);
                 Box& tmp_box = track.getBoxAtIndex(0);
@@ -189,7 +179,7 @@ public:
     {
         //if(index > -1 && box_indices.size() > index)
         {
-            return track.getBoxAtIndex(index);
+            return track.getBoxAtIndex(box_indices[index]);
         }
         //return nullptr;
     }
@@ -198,9 +188,8 @@ public:
     {
         return bound_all.getCenter();
     }
-//private:
+private:
     Track& track;
-    BoxWireframeDrawer wireframe_drawer;
     BBox bound_all;
     Vec3 selected_color;
     std::vector<int> box_indices;

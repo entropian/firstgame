@@ -464,7 +464,7 @@ int main()
     Vec3 original_box_color;
     
     //Box *selected_box_ptr = NULL;
-    Selected selected(track, proj_transform);
+    Selected selected(track);
     
     glEnable(GL_DEPTH_TEST);
     int count = 0;
@@ -523,7 +523,6 @@ int main()
 
             static int box_hit_side = -1;
             static Vec3 raycast_hit_point;            
-            //Box* hit_box_ptr = nullptr;
             int hit_box_index = -1;
             EditorAction editor_action = NONE;
             {
@@ -555,7 +554,6 @@ int main()
                                 editor_action = NONE;
                             }else
                             {
-                                //hit_box_ptr = track.rayIntersectTrack(box_hit_side, t, ray);
                                 hit_box_index = track.rayIntersectTrack(box_hit_side, t, ray);
                                 if(hit_box_index == -1)
                                 {
@@ -566,7 +564,6 @@ int main()
                                     {
                                         editor_action = DESELECT_ALL;
                                     }
-                                    //}else if(selected.find(hit_box_ptr))
                                 }else if(selected.hasIndex(hit_box_index))
                                 {
                                     if(g_input.left_ctrl)
@@ -708,12 +705,10 @@ int main()
             } break;
             case ADD_SELECT:
             {
-                //selected.select(hit_box_ptr);
                 selected.select(hit_box_index);
             } break;
             case DESELECT:
             {
-                //selected.deselect(hit_box_ptr);
                 selected.deselect(hit_box_index);
             } break;
             case DESELECT_ALL:
@@ -726,11 +721,9 @@ int main()
                 float y_norm = cursor_movement_y / window_height;
                 Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
                 Vec3 cam_pos = camera.getPosition();                
-                //Vec3 box_normal = selected_box_ptr->getSideNormal(box_hit_side);
                 Vec3 box_normal = selected.getSideNormal(box_hit_side);
                 float dist_cam_to_hitpoint = fabs((cam_pos - raycast_hit_point).length());
                 float amount = dot(cursor_vec, box_normal) * dist_cam_to_hitpoint;
-                //selected_box_ptr->changeLength(box_hit_side, amount);
                 selected.changeLength(box_hit_side, amount);
             } break;
             case MOVE_SELECTED_BOX:
@@ -739,8 +732,9 @@ int main()
                 float y_norm = cursor_movement_y / window_height;
                 Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
                 Vec3 cam_pos = camera.getPosition();
-                //manip.moveBox(*selected_box_ptr, cursor_vec);
-                manip.moveSelected(selected, cursor_vec);
+                Vec3 hit_point_to_cam = raycast_hit_point - cam_pos;
+                Vec3 scaled_cursor_vec = cursor_vec * hit_point_to_cam.length();
+                manip.moveSelected(selected, scaled_cursor_vec);
             } break;
             default:
                 break;
@@ -781,16 +775,13 @@ int main()
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             line_grid.draw();
             glDisable(GL_BLEND);
-            //if(selected_box_ptr)
             if(selected.getNumSelected()> 0)
             {
-                //bwfd.drawWireframeOnBox(*selected_box_ptr, view_transform);
                 for(int i = 0; i < selected.getNumSelected(); i++)
                 {
                     bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
                 }
                 glDisable(GL_DEPTH_TEST);
-                //manip.attachToBox(*selected_box_ptr);
                 manip.moveTo(selected.getCenter());
                 manip.draw(view_transform);
                 glEnable(GL_DEPTH_TEST);

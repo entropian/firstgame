@@ -182,7 +182,7 @@ public:
     {
         assert(hit_arrow != -1);        
         Vec3 movement_axis(model_transform.getColumn(hit_arrow));
-        float amount = dot(v, movement_axis) * 10.0f;
+        float amount = dot(v, movement_axis);
         box.move(movement_axis * amount);        
     }
 
@@ -190,7 +190,7 @@ public:
     {
         assert(hit_arrow != -1);        
         Vec3 movement_axis(model_transform.getColumn(hit_arrow));
-        float amount = dot(v, movement_axis) * 10.0f;
+        float amount = dot(v, movement_axis);
         selected.move(movement_axis * amount);        
     }
 

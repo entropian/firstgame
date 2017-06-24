@@ -33,6 +33,69 @@ struct BBox
         }
     }
 
+    void changeLength(const int side_num, const float amount)
+    {
+        // TODO: clamp to minimum lengths
+        const float min_len = 0.1f;
+        switch(side_num)
+        {
+        case 0: // Positive x
+        {
+            max[0] += amount;
+            float diff = max[0] - min[0];
+            if(diff < min_len)
+            {
+                max[0] += min_len - diff;
+            }
+        } break;
+        case 1: // Negative x
+        {
+            min[0] -= amount;
+            float diff = max[0] - min[0];
+            if(diff < min_len)
+            {
+                min[0] -= min_len - diff;
+            }
+        } break;
+        case 2: // Positive y
+        {
+            max[1] += amount;
+            float diff = max[1] - min[1];
+            if(diff < min_len)
+            {
+                max[1] += min_len - diff;
+            }
+        } break;
+        case 3: // Negative y
+        {
+            min[1] -= amount;
+            float diff = max[1] - min[1];
+            if(diff < min_len)
+            {
+                min[1] -= min_len - diff;
+            }
+        } break;
+        case 4: // Positive z
+        {
+            max[2] += amount;
+            float diff = max[2] - min[2];
+            if(diff < min_len)
+            {
+                max[2] += min_len - diff;
+            }
+        } break;
+        case 5: // Negative z
+        {
+            min[2] -= amount;
+            float diff = max[2] - min[2];
+            if(diff < min_len)
+            {
+                min[2] -= min_len - diff;
+            }
+        } break;
+        }
+    }    
+
     void transform(const Mat4& m)
     {
         Vec4 corners[8];
