@@ -758,7 +758,7 @@ int main()
             }
             int accel_states[3];
             calcShipAccelState(accel_states, g_input);
-            ship.calcVelocity(accel_states);
+            ship.calcVelocity(accel_states, dt);
             ship.updatePosAndVelocity(dt, track);
             camera.setPosRelativeToShip(ship);
         }

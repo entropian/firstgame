@@ -10,6 +10,12 @@
 #include "objloader/objloader.h"
 #include "mat.h"
 
+// Ship velocity constants
+const float MAX_Z_VELOCITY = 30.0f;
+const float MAX_X_VELOCITY = 5.0f;
+const float MAX_Y_DOWNWARD_VELOCITY = -85.0f;
+const float Y_JUMP_VELOCITY = 25.0f;
+const float JUMPABLE_TIME_AFTER_NOT_GROUNDED = 0.1f;
 
 Ship::Ship()
 {
@@ -223,7 +229,7 @@ void Ship::updatePosAndVelocity(const float dt, Track& track)
     }
 
     int collided = track.bboxCollideWithTrack(colliding_boxes, new_bbox);
-    grounded = false;
+    bool tmp_grounded = false;
     for(int i = 0; collided > 0 && i < 3; i++)
     {
         int hit_dir = -1;
@@ -236,7 +242,7 @@ void Ship::updatePosAndVelocity(const float dt, Track& track)
             float tmp_overlap_time = new_bbox.calcOverlapTime(tmp_hit_dir, track_box, velocity);
             if(tmp_hit_dir == 2)
             {
-                grounded = true;
+                tmp_grounded = true;
             }
             if(tmp_overlap_time > overlap_time)
             {
@@ -256,6 +262,21 @@ void Ship::updatePosAndVelocity(const float dt, Track& track)
         new_bbox.max = bbox.max + dp;
         collided = track.bboxCollideWithTrack(colliding_boxes, new_bbox);
     }
+    if(tmp_grounded)
+    {
+        jumping = false;
+    }
+    if(!tmp_grounded)
+    {
+        if(grounded)
+        {
+            time_not_grounded = 0.0f;
+        }else
+        {
+            time_not_grounded += dt;
+        }
+    }
+    grounded = tmp_grounded;
     bbox.min += dp;
     bbox.max += dp;
     Mat4 displacement = Mat4::makeTranslation(dp);
@@ -263,9 +284,9 @@ void Ship::updatePosAndVelocity(const float dt, Track& track)
 }
 
 // TODO: make accleration time based instead of frame based
-void Ship::calcVelocity(int accel_states[3])
+void Ship::calcVelocity(int accel_states[3], const float dt)
 {
-    // TODO: velocity oscillates around 0    
+    float z_forward_accel = -MAX_Z_VELOCITY / 0.5f;
     // Z velocity
     // Ship going "forward"
     if(velocity[2] < 0.0f)
@@ -273,7 +294,11 @@ void Ship::calcVelocity(int accel_states[3])
         if(accel_states[2] == -1)
         {
             // Accelerating in the same direction as ship motion
-            velocity[2] = -MAX_Z_VELOCITY;
+            velocity[2] += z_forward_accel * dt;
+            if(velocity[2] < -MAX_Z_VELOCITY)
+            {
+                velocity[2] = -MAX_Z_VELOCITY;
+            }
         }else if(accel_states[2] == 1)
         {
             // Acclerating in the opposite direction as ship motion
@@ -311,7 +336,8 @@ void Ship::calcVelocity(int accel_states[3])
         if(accel_states[2] == -1)
         {
             // Forward
-            velocity[2] = -MAX_Z_VELOCITY;
+            //velocity[2] = -MAX_Z_VELOCITY;
+            velocity[2] += z_forward_accel * dt;
         }else if(accel_states[2] == 1)
         {
             // Backward
@@ -332,17 +358,20 @@ void Ship::calcVelocity(int accel_states[3])
     }
 
     // Y velocity
+    float y_accel = MAX_Y_DOWNWARD_VELOCITY / 0.1f;
     if(accel_states[1] == -1)
     {
-        velocity[1] -= 1.5f;
+        velocity[1] += MAX_Y_DOWNWARD_VELOCITY * dt;
         if(velocity[1] < MAX_Y_DOWNWARD_VELOCITY)
         {
             velocity[1] = MAX_Y_DOWNWARD_VELOCITY;
         }
-    }else if(accel_states[1] == 1 && grounded)
+    }else if(accel_states[1] == 1 && !jumping &&
+             (grounded || time_not_grounded < JUMPABLE_TIME_AFTER_NOT_GROUNDED))
     {
         velocity[1] = Y_JUMP_VELOCITY;
         grounded = false;
+        jumping = true;
     }
 }
 

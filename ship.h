@@ -18,7 +18,7 @@ public:
     bool bboxCollide(const BBox& bbox) const;
     BBox getBBox();    
     void updatePosAndVelocity(const float dt, Track& track);
-    void calcVelocity(int accel_states[3]);
+    void calcVelocity(int accel_states[3], const float dt);
     void draw();
     Vec3 getPos() const;
     void resetPosition();
@@ -34,7 +34,8 @@ public:
     Box* colliding_boxes[24]; // Assuming that each side of the space can collide with up to 4 boxes
     Vec3 velocity;
     Mat4 transform;
-    bool grounded;
+    bool grounded, jumping;
+    float time_not_grounded;    
     // TODO: move some members to private
 private:
     Mat4 default_ship_transform;
