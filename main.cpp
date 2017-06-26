@@ -425,7 +425,9 @@ int main()
     float aspect_ratio  = (float)window_width / (float)window_height;
     float fov = 90.0f;
     // NOTE: where to put proj_transform?
-    Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));
+    Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));    
+    //Mat4 proj_transform(Mat4::makeOrthographic(20.0f, aspect_ratio, 0.001f, 200.0f));
+    proj_transform.print();
     Camera camera(Vec3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 4.0f), fov, aspect_ratio);
     Vec3 editor_camera_pos, editor_camera_euler_ang;
     Mat4 view_transform = camera.getViewTransform();
