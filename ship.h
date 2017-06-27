@@ -13,6 +13,7 @@ public:
     ~Ship();
     void setStaticUniforms(const Mat4& proj_transform, const Vec3& dir_light);
     void setViewTransform(const Mat4& view_transform);
+    void setProjTransform(const Mat4& proj_transform);
     void updateDynamicUniforms(const Mat4& view_transform);
     void move(const Vec3& v);
     bool bboxCollide(const BBox& bbox) const;

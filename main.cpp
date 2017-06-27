@@ -37,6 +37,7 @@ enum GameMode
 };
 GameMode g_game_mode = PLAY;
 bool g_mode_change = false;
+bool g_multi_view = false;
 
 enum EditorAction
 {
@@ -70,6 +71,7 @@ struct Input
     int c;
     int g;
     int p;
+    int h;
 
     int left_ctrl;
 
@@ -97,6 +99,7 @@ struct Input
         c = 0;
         g = 0;
         p = 0;
+        h = 0;
         left_ctrl = 0;
         jump_request = false;
         click_x = 0;
@@ -241,7 +244,11 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         case GLFW_KEY_P:
         {
             g_input.p = 1;
-        } break;        
+        } break;
+        case GLFW_KEY_H:
+        {
+            g_input.h = 1;
+        } break;                
         case GLFW_KEY_SPACE:
         {
             g_input.jump_request = true;
@@ -319,6 +326,12 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             g_input.p = 0;
         } break;
+        case GLFW_KEY_H:
+        {
+            g_input.h = 0;
+            // TODO: temp
+            g_multi_view = !g_multi_view;
+        } break;                        
         case GLFW_KEY_LEFT_CONTROL:
         {
             g_input.left_ctrl = 0;
@@ -368,6 +381,24 @@ void getNormalizedWindowCoord(float& x, float& y, const unsigned int x_pos, cons
     x = (float)(x_pos - window_width/2.0f) / (window_width / 2.0f);
     y = (float)(y_pos - window_height/2.0f) / (window_height / 2.0f);
 }
+
+void updateViewTransform(Ship& ship, Track& track, LineGrid& line_grid, const Mat4& view_transform)
+{
+    ship.updateDynamicUniforms(view_transform);
+    track.setViewTransform(view_transform);
+    line_grid.setViewTransform(view_transform);
+}
+
+void updateProjTransform(Ship& ship, Track& track, LineGrid& line_grid, Manipulator& manip,
+                         BoxWireframeDrawer& bwfd, const Mat4& proj_transform)
+{
+    ship.setProjTransform(proj_transform);
+    track.setProjTransform(proj_transform);
+    line_grid.setProjTransform(proj_transform);
+    manip.setProjTransform(proj_transform);
+    bwfd.setProjTransform(proj_transform);
+}
+
 
 GLFWwindow* initWindow(unsigned int width, unsigned int height)
 {
@@ -420,23 +451,26 @@ int main()
     // Light
     Vec3 dir_light(normalize(Vec3(0.7f, 2.0f, 1.0f)));
         
-    // Transforms
+    // Cameras
     float aspect_ratio  = (float)window_width / (float)window_height;
-    float fov = 90.0f;
-    // NOTE: where to put proj_transform?
-    //Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));    
-    /*
-    PerspectiveCamera camera(Vec3(0.0f, 0.0f, -1.0f),
+    float fov = 90.0f;    
+    PerspectiveCamera pers_camera(Vec3(0.0f, 0.0f, -1.0f),
                              Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 4.0f), fov, aspect_ratio);
-    */
+
     const float view_volume_width = 20.0f;
     const float view_volume_height = view_volume_width / aspect_ratio;
-    OrthographicCamera camera(Vec3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 4.0f),
+    OrthographicCamera ortho_camera_z(Vec3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 0.0f, 10.0f),
+                                      view_volume_width, view_volume_height);
+    OrthographicCamera ortho_camera_x(Vec3(1.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(-10.0f, 0.0f, 0.0f),
                               view_volume_width, view_volume_height);
-    Mat4 proj_transform(Mat4::makeOrthographic(view_volume_width, view_volume_height, 0.001f, 200.0f));
+    OrthographicCamera ortho_camera_y(Vec3(0.0f, -1.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f),
+                                      Vec3(00.0f, 10.0f, 0.0f),
+                                      view_volume_width, view_volume_height);
+    Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));
+    Mat4 ortho_transform(Mat4::makeOrthographic(view_volume_width, view_volume_height, 0.001f, 200.0f));
     proj_transform.print();
     Vec3 editor_camera_pos, editor_camera_euler_ang;
-    Mat4 view_transform = camera.getViewTransform();
+    Mat4 view_transform = pers_camera.getViewTransform();
 
     // Ship transforms
     //Mat4 ship_normal_transform = ((view_transform * model.inverse())).transpose();
@@ -473,7 +507,7 @@ int main()
     
     //Box *selected_box_ptr = NULL;
     Selected selected(track);
-    
+
     glEnable(GL_DEPTH_TEST);
     int count = 0;
 	while (!glfwWindowShouldClose(window) && !EXIT)
@@ -518,16 +552,16 @@ int main()
             if(g_mode_change)
             {
                 // Changed mode from play to editor
-                camera.setPosAndOrientation(editor_camera_pos, editor_camera_euler_ang);
+                pers_camera.setPosAndOrientation(editor_camera_pos, editor_camera_euler_ang);
                 g_mode_change = false;
             }
             // Camera movement
             if(g_input.right_click && g_input.cursor_moved_last_frame)
             {
-                camera.turn(cursor_movement_x, cursor_movement_y);
+                pers_camera.turn(cursor_movement_x, cursor_movement_y);
                 g_input.cursor_moved_last_frame = false;
             }
-            moveCamera(camera, g_input, dt);
+            moveCamera(pers_camera, g_input, dt);
 
             static int box_hit_side = -1;
             static Vec3 raycast_hit_point;            
@@ -552,7 +586,7 @@ int main()
                     {
                         float click_x, click_y;
                         getNormalizedWindowCoord(click_x, click_y, g_input.click_x, g_input.click_y, window);
-                        Ray ray = camera.calcRayFromScreenCoord(click_x, click_y);
+                        Ray ray = pers_camera.calcRayFromScreenCoord(click_x, click_y);
                         float t;
                         if(selected.getNumSelected() > 0)
                         {
@@ -690,8 +724,8 @@ int main()
                 // Place new box in track
                 // take camera z axis, move some distance forward, then project it on to the xz plane at y = 0
                 // make a box there
-                Vec3 camera_z_axis = -camera.getZAxis();
-                Vec3 camera_pos = camera.getPosition();
+                Vec3 camera_z_axis = -pers_camera.getZAxis();
+                Vec3 camera_pos = pers_camera.getPosition();
                 const float dist = 5.0f;
                 Vec3 box_center = camera_z_axis * dist + camera_pos;
                 box_center[1] = 0.0f;
@@ -727,8 +761,8 @@ int main()
             {
                 float x_norm = cursor_movement_x / window_width * aspect_ratio;
                 float y_norm = cursor_movement_y / window_height;
-                Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
-                Vec3 cam_pos = camera.getPosition();                
+                Vec3 cursor_vec = Vec3(pers_camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+                Vec3 cam_pos = pers_camera.getPosition();                
                 Vec3 box_normal = selected.getSideNormal(box_hit_side);
                 float dist_cam_to_hitpoint = fabs((cam_pos - raycast_hit_point).length());
                 float amount = dot(cursor_vec, box_normal) * dist_cam_to_hitpoint;
@@ -738,8 +772,8 @@ int main()
             {
                 float x_norm = cursor_movement_x / window_width * aspect_ratio;
                 float y_norm = cursor_movement_y / window_height;
-                Vec3 cursor_vec = Vec3(camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
-                Vec3 cam_pos = camera.getPosition();
+                Vec3 cursor_vec = Vec3(pers_camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+                Vec3 cam_pos = pers_camera.getPosition();
                 Vec3 hit_point_to_cam = raycast_hit_point - cam_pos;
                 Vec3 scaled_cursor_vec = cursor_vec * hit_point_to_cam.length();
                 manip.moveSelected(selected, scaled_cursor_vec);
@@ -755,9 +789,9 @@ int main()
             {
                 // Last frame was in editor mode
                 // Save editor mode camera pos and orientation
-                editor_camera_pos = camera.getPosition();
-                editor_camera_euler_ang = camera.getEulerAng();
-                camera.setPosAndOrientation(Vec3(), Vec3());
+                editor_camera_pos = pers_camera.getPosition();
+                editor_camera_euler_ang = pers_camera.getEulerAng();
+                pers_camera.setPosAndOrientation(Vec3(), Vec3());
                 g_mode_change = false;
             }
             if(g_input.r == 1)
@@ -768,32 +802,143 @@ int main()
             calcShipAccelState(accel_states, g_input);
             ship.calcVelocity(accel_states, dt);
             ship.updatePosAndVelocity(dt, track);
-            camera.setPosRelativeToShip(ship);
+            pers_camera.setPosRelativeToShip(ship);
         }
-        // NOTE: separate rendering code for different motes
-        view_transform = camera.getViewTransform();
-        ship.updateDynamicUniforms(view_transform);
-        ship.draw();
-        track.setViewTransform(view_transform);
-        track.draw();
-        if(g_game_mode == EDITOR)
+
+        // Rendering
+        if(!g_multi_view)
         {
-            line_grid.setViewTransform(view_transform);
-            glEnable(GL_BLEND);    
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            line_grid.draw();
-            glDisable(GL_BLEND);
-            if(selected.getNumSelected()> 0)
+            view_transform = pers_camera.getViewTransform();
+            ship.updateDynamicUniforms(view_transform);
+            ship.draw();
+            track.setViewTransform(view_transform);
+            track.draw();
+            if(g_game_mode == EDITOR)
             {
-                for(int i = 0; i < selected.getNumSelected(); i++)
+                line_grid.setViewTransform(view_transform);
+                glEnable(GL_BLEND);    
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                line_grid.draw();
+                glDisable(GL_BLEND);
+                if(selected.getNumSelected()> 0)
                 {
-                    bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                    for(int i = 0; i < selected.getNumSelected(); i++)
+                    {
+                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                    }
+                    glDisable(GL_DEPTH_TEST);
+                    manip.moveTo(selected.getCenter());
+                    manip.draw(view_transform);
+                    glEnable(GL_DEPTH_TEST);
                 }
-                glDisable(GL_DEPTH_TEST);
-                manip.moveTo(selected.getCenter());
-                manip.draw(view_transform);
-                glEnable(GL_DEPTH_TEST);
             }
+        }else
+        {
+            // bottom left
+            glViewport(0, 0, window_width / 2, window_height / 2);
+            view_transform = pers_camera.getViewTransform();
+            ship.updateDynamicUniforms(view_transform);
+            ship.draw();
+            track.setViewTransform(view_transform);
+            track.draw();
+            if(g_game_mode == EDITOR)
+            {
+                line_grid.setViewTransform(view_transform);
+                glEnable(GL_BLEND);    
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                line_grid.draw();
+                glDisable(GL_BLEND);
+                if(selected.getNumSelected()> 0)
+                {
+                    for(int i = 0; i < selected.getNumSelected(); i++)
+                    {
+                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                    }
+                    glDisable(GL_DEPTH_TEST);
+                    manip.moveTo(selected.getCenter());
+                    manip.draw(view_transform);
+                    glEnable(GL_DEPTH_TEST);
+                }
+            }
+
+            // top left, x view
+            updateProjTransform(ship, track, line_grid, manip, bwfd, ortho_transform);
+            glViewport(0, window_height / 2, window_width / 2, window_height / 2);
+            view_transform = ortho_camera_x.getViewTransform();
+            updateViewTransform(ship, track, line_grid, view_transform);
+            ship.draw();
+            track.draw();
+            if(g_game_mode == EDITOR)
+            {
+                glEnable(GL_BLEND);    
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                line_grid.draw();
+                glDisable(GL_BLEND);
+                if(selected.getNumSelected()> 0)
+                {
+                    for(int i = 0; i < selected.getNumSelected(); i++)
+                    {
+                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                    }
+                    glDisable(GL_DEPTH_TEST);
+                    manip.moveTo(selected.getCenter());
+                    manip.draw(view_transform);
+                    glEnable(GL_DEPTH_TEST);
+                }
+            }
+
+            // top right, y view
+            glViewport(window_width / 2, window_height / 2, window_width / 2, window_height / 2);
+            view_transform = ortho_camera_y.getViewTransform();
+            updateViewTransform(ship, track, line_grid, view_transform);
+            ship.draw();
+            track.draw();
+            if(g_game_mode == EDITOR)
+            {
+                glEnable(GL_BLEND);    
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                line_grid.draw();
+                glDisable(GL_BLEND);
+                if(selected.getNumSelected()> 0)
+                {
+                    for(int i = 0; i < selected.getNumSelected(); i++)
+                    {
+                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                    }
+                    glDisable(GL_DEPTH_TEST);
+                    manip.moveTo(selected.getCenter());
+                    manip.draw(view_transform);
+                    glEnable(GL_DEPTH_TEST);
+                }
+            }
+
+            // top right, y view
+            glViewport(window_width / 2, 0, window_width / 2, window_height / 2);
+            view_transform = ortho_camera_z.getViewTransform();
+            updateViewTransform(ship, track, line_grid, view_transform);
+            ship.draw();
+            track.draw();
+            if(g_game_mode == EDITOR)
+            {
+                glEnable(GL_BLEND);    
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                line_grid.draw();
+                glDisable(GL_BLEND);
+                if(selected.getNumSelected()> 0)
+                {
+                    for(int i = 0; i < selected.getNumSelected(); i++)
+                    {
+                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                    }
+                    glDisable(GL_DEPTH_TEST);
+                    manip.moveTo(selected.getCenter());
+                    manip.draw(view_transform);
+                    glEnable(GL_DEPTH_TEST);
+                }
+            }            
+            
+            glViewport(0, 0, window_width, window_height);
+            updateProjTransform(ship, track, line_grid, manip, bwfd, proj_transform);
         }
 
         last_cursor_x = cursor_x;
@@ -806,3 +951,4 @@ int main()
 	glfwTerminate();
 	return 0;
 }
+

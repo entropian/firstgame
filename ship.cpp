@@ -204,6 +204,14 @@ void Ship::setViewTransform(const Mat4& view_transform)
     glUseProgram(0);
 }
 
+void Ship::setProjTransform(const Mat4& proj_transform)
+{
+    glUseProgram(shader_program);
+    GLint proj_handle = glGetUniformLocation(shader_program, "proj_mat");
+    glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_transform.data[0][0]));
+    glUseProgram(0);
+}
+
 BBox Ship::getBBox()
 {
     return bbox;

@@ -118,6 +118,14 @@ public:
         glUseProgram(0);
     }
 
+    void setProjTransform(const Mat4& proj_transform)
+    {
+        glUseProgram(shader_program);
+        GLint proj_handle = glGetUniformLocation(shader_program, "proj_mat");
+        glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_transform.data[0][0]));
+        glUseProgram(0);
+    }    
+
     void draw()
     {
         glUseProgram(shader_program);
