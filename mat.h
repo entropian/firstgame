@@ -203,12 +203,13 @@ struct Mat
 		return r;
 	}
 
-    static Mat4 makeOrthographic(const float zoom, const float aspect_ratio, const float z_near, const float z_far)
+    static Mat4 makeOrthographic(const float width, const float height,
+                                 const float z_near, const float z_far)
     {
-        printf("herein orthographic\n");
         Mat4 r;
-        r(0, 0) = 1.0f / aspect_ratio / zoom;
-        r(1, 1) = 1.0f / zoom;
+        // width and height = dimensions of the projections volume
+        r(0, 0) = 1.0f / (width * 0.5f);
+        r(1, 1) = 1.0f / (height * 0.5f);
         r(2, 2) = -2.0f / (z_far - z_near);
         r(2, 3) = -(z_far + z_near)/(z_far - z_near);
         return r;

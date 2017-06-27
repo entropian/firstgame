@@ -18,14 +18,9 @@ class Camera
 {
 public:
     Camera()
-    {
-    }
+    {}
 
-    Camera(const float fov, const float aspect_ratio)
-        : m_image_plane(fov, aspect_ratio), pos(Vec3(0.0f, 0.0f, 0.0f)), euler_angle(0.0f, 0.0f, 0.0f) {}
-
-    Camera(const Vec3& dir, const Vec3& up_vec, const Vec3& p, const float fov, const float aspect_ratio)
-        :m_image_plane(fov, aspect_ratio), pos(p)
+    Camera(const Vec3& dir, const Vec3& up_vec, const Vec3& p)
     {
         camera_transform = lookAt(dir, up_vec, p);
         view_transform = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 1.0f)) * camera_transform.inverse();
@@ -52,7 +47,7 @@ public:
             orientation(i, 2) = z[i];
         }
         return translation * orientation;
-    }    
+    }
 
     void updateTransforms()
     {
@@ -71,7 +66,6 @@ public:
         camera_transform = lookAt(dir, Vec3(0.0f, 1.0f, 0.0f), pos);
         view_transform = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 1.0f)) * camera_transform.inverse();
     }
-
     void move(const Direction direction, const float distance)
     {
         Vec3 move_dir;
@@ -111,7 +105,7 @@ public:
         }
         view_transform = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 1.0f)) * camera_transform.inverse();
     }
-
+    
     void turn(const float heading, const float pitch)
     {
         euler_angle[0] += heading;
@@ -134,41 +128,13 @@ public:
         }
         updateTransforms();
     }
-
     Ray transformRay(const Ray& ray)
     {
         Ray ret;
         ret.origin = camera_transform * Vec4(ray.origin, 1.0f);
         ret.dir = camera_transform * Vec4(ray.dir, 0.0f);
         return ret;
-    }
-
-    Ray calcRayFromScreenCoord(const float x, const float y)
-    {
-        Ray ray = m_image_plane.calcRay(x, y);
-        ray = this->transformRay(ray);
-        return ray;
-    }
-
-    void setPosRelativeToShip(const Ship& ship)
-    {
-        Vec3 ship_pos = ship.getPos();
-        Vec3 displacement = ship_pos - pos;
-        displacement[0] = 0.0f;
-        displacement[1] = 0.0f;
-        const float cam_to_ship_z_dist = 6.0f;
-        displacement[2] += cam_to_ship_z_dist;
-
-        pos[0] = 0.0f;
-        // TODO: put game mode camera height in a variable somewhere
-        pos[1] = 2.5f;
-        pos[2] += displacement[2];
-        camera_transform(0, 3) = pos[0];
-        camera_transform(1, 3) = pos[1];
-        camera_transform(2, 3) = pos[2];
-        view_transform = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 1.0f)) * camera_transform.inverse();        
-    }
-
+    }    
     Mat4 getViewTransform() const
     {
         return view_transform;
@@ -182,8 +148,7 @@ public:
     Vec3 getPosition() const
     {
         return pos;
-    }
-
+    }    
     Vec3 getXAxis() const
     {
         return Vec3(camera_transform(0, 0), camera_transform(1, 0), camera_transform(2, 0));
@@ -210,11 +175,80 @@ public:
     {
         return euler_angle;
     }
-private:
+    virtual Ray calcRayFromScreenCoord(const float x, const float y) = 0;
+
+    void setPosRelativeToShip(const Ship& ship)
+    {
+        Vec3 ship_pos = ship.getPos();
+        Vec3 displacement = ship_pos - pos;
+        displacement[0] = 0.0f;
+        displacement[1] = 0.0f;
+        const float cam_to_ship_z_dist = 6.0f;
+        displacement[2] += cam_to_ship_z_dist;
+
+        pos[0] = 0.0f;
+        // TODO: put game mode camera height in a variable somewhere
+        pos[1] = 2.5f;
+        pos[2] += displacement[2];
+        camera_transform(0, 3) = pos[0];
+        camera_transform(1, 3) = pos[1];
+        camera_transform(2, 3) = pos[2];
+        view_transform = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 1.0f)) * camera_transform.inverse();        
+    }    
+protected:
     Mat4 view_transform;
     Mat4 camera_transform;
-    Vec3 scale;
     ImagePlane m_image_plane;
     Vec3 euler_angle;
-    Vec3 pos;
+    Vec3 pos;    
+};
+
+class PerspectiveCamera : public Camera
+{
+public:
+    PerspectiveCamera()
+    {
+    }
+
+    PerspectiveCamera(const float fov, const float aspect_ratio)
+    {
+        m_image_plane.makePerspective(fov, aspect_ratio);
+    }
+
+    PerspectiveCamera(const Vec3& dir, const Vec3& up_vec, const Vec3& p, const float fov, const float aspect_ratio)
+        :Camera(dir, up_vec, p)
+    {
+        m_image_plane.makePerspective(fov, aspect_ratio);
+    }
+
+    Ray calcRayFromScreenCoord(const float x, const float y)
+    {
+        Ray ray = m_image_plane.calcPerspectiveRay(x, y);
+        ray = this->transformRay(ray);
+        return ray;
+    }
+};
+
+class OrthographicCamera : public Camera
+{
+public:
+    OrthographicCamera(){}
+
+    OrthographicCamera(const float width, const float height)
+    {
+        m_image_plane.makeOrthographic(width, height);
+    }
+
+    OrthographicCamera(const Vec3& dir, const Vec3& up_vec, const Vec3& p, const float width, const float height)
+        :Camera(dir, up_vec, p)
+    {
+        m_image_plane.makeOrthographic(width, height);
+    }    
+
+    Ray calcRayFromScreenCoord(const float x, const float y)
+    {
+        Ray ray = m_image_plane.calcOrthographicRay(x, y);
+        ray = this->transformRay(ray);
+        return ray;        
+    }
 };

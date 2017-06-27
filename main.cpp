@@ -1,7 +1,6 @@
 /*
   TODO:
-  solve when track and ship are initlized to be colliding
-  
+  solve when track and ship are initlized to be colliding  
   make the main game loop timestep based
   make ship velocity work with timestep
   add some kind of grid for track editing
@@ -425,10 +424,17 @@ int main()
     float aspect_ratio  = (float)window_width / (float)window_height;
     float fov = 90.0f;
     // NOTE: where to put proj_transform?
-    Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));    
-    //Mat4 proj_transform(Mat4::makeOrthographic(20.0f, aspect_ratio, 0.001f, 200.0f));
+    //Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));    
+    /*
+    PerspectiveCamera camera(Vec3(0.0f, 0.0f, -1.0f),
+                             Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 4.0f), fov, aspect_ratio);
+    */
+    const float view_volume_width = 20.0f;
+    const float view_volume_height = view_volume_width / aspect_ratio;
+    OrthographicCamera camera(Vec3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 4.0f),
+                              view_volume_width, view_volume_height);
+    Mat4 proj_transform(Mat4::makeOrthographic(view_volume_width, view_volume_height, 0.001f, 200.0f));
     proj_transform.print();
-    Camera camera(Vec3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 4.0f), fov, aspect_ratio);
     Vec3 editor_camera_pos, editor_camera_euler_ang;
     Mat4 view_transform = camera.getViewTransform();
 
