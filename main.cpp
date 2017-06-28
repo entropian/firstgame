@@ -35,9 +35,6 @@ enum GameMode
     EDITOR,
     PLAY
 };
-GameMode g_game_mode = PLAY;
-bool g_mode_change = false;
-bool g_multi_view = false;
 
 enum EditorAction
 {
@@ -54,6 +51,23 @@ enum EditorAction
     CHANGE_BOX_LENGTH,
     MOVE_SELECTED_BOX
 };
+
+struct GlobalData
+{
+    Vec3 editor_camera_pos;
+    Vec3 editor_camera_euler_ang;
+    GameMode game_mode;
+    bool mode_change;
+    bool editor_multi_view;
+
+    void initGlobalData()
+    {
+        game_mode = PLAY;
+        mode_change = false;
+        editor_multi_view = false;
+    }       
+};
+GlobalData g;
 
 struct Input
 {
@@ -288,13 +302,13 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         } break;        
         case GLFW_KEY_M:
         {
-            g_mode_change = true;
-            if(g_game_mode == PLAY)
+            g.mode_change = true;
+            if(g.game_mode == PLAY)
             {
-                g_game_mode = EDITOR;
-            }else if(g_game_mode == EDITOR)
+                g.game_mode = EDITOR;
+            }else if(g.game_mode == EDITOR)
             {
-                g_game_mode = PLAY;
+                g.game_mode = PLAY;
             }
         } break;
         case GLFW_KEY_Q:
@@ -330,7 +344,7 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         {
             g_input.h = 0;
             // TODO: temp
-            g_multi_view = !g_multi_view;
+            g.editor_multi_view = !g.editor_multi_view;
         } break;                        
         case GLFW_KEY_LEFT_CONTROL:
         {
@@ -397,6 +411,36 @@ void updateProjTransform(Ship& ship, Track& track, LineGrid& line_grid, Manipula
     line_grid.setProjTransform(proj_transform);
     manip.setProjTransform(proj_transform);
     bwfd.setProjTransform(proj_transform);
+}
+
+void gameModeFrame(PerspectiveCamera& camera, Ship& ship, Track& track, const float dt)
+{
+    // Update ship position and velocity based on velocity from last frame
+    // Update ship velocity based on keyboard input
+    if(g.mode_change)
+    {
+        // Last frame was in editor mode
+        // Save editor mode camera pos and orientation
+        g.editor_camera_pos = camera.getPosition();
+        g.editor_camera_euler_ang = camera.getEulerAng();
+        camera.setPosAndOrientation(Vec3(), Vec3());
+        g.mode_change = false;
+    }
+    if(g_input.r == 1)
+    {
+        ship.resetPosition();
+    }
+    int accel_states[3];
+    calcShipAccelState(accel_states, g_input);
+    ship.calcVelocity(accel_states, dt);
+    ship.updatePosAndVelocity(dt, track);
+    camera.setPosRelativeToShip(ship);
+
+    Mat4 view_transform = camera.getViewTransform();
+    ship.updateDynamicUniforms(view_transform);
+    ship.draw();
+    track.setViewTransform(view_transform);
+    track.draw();
 }
 
 
@@ -547,13 +591,13 @@ int main()
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         }
         */        
-        if(g_game_mode == EDITOR)
+        if(g.game_mode == EDITOR)
         {
-            if(g_mode_change)
+            if(g.mode_change)
             {
                 // Changed mode from play to editor
                 pers_camera.setPosAndOrientation(editor_camera_pos, editor_camera_euler_ang);
-                g_mode_change = false;
+                g.mode_change = false;
             }
             // Camera movement
             if(g_input.right_click && g_input.cursor_moved_last_frame)
@@ -781,164 +825,144 @@ int main()
             default:
                 break;
             }
-        }else if(g_game_mode == PLAY)
-        {
-            // Update ship position and velocity based on velocity from last frame
-            // Update ship velocity based on keyboard input
-            if(g_mode_change)
-            {
-                // Last frame was in editor mode
-                // Save editor mode camera pos and orientation
-                editor_camera_pos = pers_camera.getPosition();
-                editor_camera_euler_ang = pers_camera.getEulerAng();
-                pers_camera.setPosAndOrientation(Vec3(), Vec3());
-                g_mode_change = false;
-            }
-            if(g_input.r == 1)
-            {
-                ship.resetPosition();
-            }
-            int accel_states[3];
-            calcShipAccelState(accel_states, g_input);
-            ship.calcVelocity(accel_states, dt);
-            ship.updatePosAndVelocity(dt, track);
-            pers_camera.setPosRelativeToShip(ship);
-        }
 
-        // Rendering
-        if(!g_multi_view)
-        {
-            view_transform = pers_camera.getViewTransform();
-            ship.updateDynamicUniforms(view_transform);
-            ship.draw();
-            track.setViewTransform(view_transform);
-            track.draw();
-            if(g_game_mode == EDITOR)
+            if(!g.editor_multi_view)
             {
-                line_grid.setViewTransform(view_transform);
-                glEnable(GL_BLEND);    
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                line_grid.draw();
-                glDisable(GL_BLEND);
-                if(selected.getNumSelected()> 0)
+                view_transform = pers_camera.getViewTransform();
+                ship.updateDynamicUniforms(view_transform);
+                ship.draw();
+                track.setViewTransform(view_transform);
+                track.draw();
+                if(g.game_mode == EDITOR)
                 {
-                    for(int i = 0; i < selected.getNumSelected(); i++)
+                    line_grid.setViewTransform(view_transform);
+                    glEnable(GL_BLEND);    
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    line_grid.draw();
+                    glDisable(GL_BLEND);
+                    if(selected.getNumSelected()> 0)
                     {
-                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                        for(int i = 0; i < selected.getNumSelected(); i++)
+                        {
+                            bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                        }
+                        glDisable(GL_DEPTH_TEST);
+                        manip.moveTo(selected.getCenter());
+                        manip.draw(view_transform);
+                        glEnable(GL_DEPTH_TEST);
                     }
-                    glDisable(GL_DEPTH_TEST);
-                    manip.moveTo(selected.getCenter());
-                    manip.draw(view_transform);
-                    glEnable(GL_DEPTH_TEST);
                 }
-            }
-        }else
-        {
-            // bottom left
-            glViewport(0, 0, window_width / 2, window_height / 2);
-            view_transform = pers_camera.getViewTransform();
-            ship.updateDynamicUniforms(view_transform);
-            ship.draw();
-            track.setViewTransform(view_transform);
-            track.draw();
-            if(g_game_mode == EDITOR)
+            }else
             {
-                line_grid.setViewTransform(view_transform);
-                glEnable(GL_BLEND);    
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                line_grid.draw();
-                glDisable(GL_BLEND);
-                if(selected.getNumSelected()> 0)
+                // bottom left
+                glViewport(0, 0, window_width / 2, window_height / 2);
+                view_transform = pers_camera.getViewTransform();
+                ship.updateDynamicUniforms(view_transform);
+                ship.draw();
+                track.setViewTransform(view_transform);
+                track.draw();
+                if(g.game_mode == EDITOR)
                 {
-                    for(int i = 0; i < selected.getNumSelected(); i++)
+                    line_grid.setViewTransform(view_transform);
+                    glEnable(GL_BLEND);    
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    line_grid.draw();
+                    glDisable(GL_BLEND);
+                    if(selected.getNumSelected()> 0)
                     {
-                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                        for(int i = 0; i < selected.getNumSelected(); i++)
+                        {
+                            bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                        }
+                        glDisable(GL_DEPTH_TEST);
+                        manip.moveTo(selected.getCenter());
+                        manip.draw(view_transform);
+                        glEnable(GL_DEPTH_TEST);
                     }
-                    glDisable(GL_DEPTH_TEST);
-                    manip.moveTo(selected.getCenter());
-                    manip.draw(view_transform);
-                    glEnable(GL_DEPTH_TEST);
                 }
-            }
 
-            // top left, x view
-            updateProjTransform(ship, track, line_grid, manip, bwfd, ortho_transform);
-            glViewport(0, window_height / 2, window_width / 2, window_height / 2);
-            view_transform = ortho_camera_x.getViewTransform();
-            updateViewTransform(ship, track, line_grid, view_transform);
-            ship.draw();
-            track.draw();
-            if(g_game_mode == EDITOR)
-            {
-                glEnable(GL_BLEND);    
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                line_grid.draw();
-                glDisable(GL_BLEND);
-                if(selected.getNumSelected()> 0)
+                // top left, x view
+                updateProjTransform(ship, track, line_grid, manip, bwfd, ortho_transform);
+                glViewport(0, window_height / 2, window_width / 2, window_height / 2);
+                view_transform = ortho_camera_x.getViewTransform();
+                updateViewTransform(ship, track, line_grid, view_transform);
+                ship.draw();
+                track.draw();
+                if(g.game_mode == EDITOR)
                 {
-                    for(int i = 0; i < selected.getNumSelected(); i++)
+                    glEnable(GL_BLEND);    
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    line_grid.draw();
+                    glDisable(GL_BLEND);
+                    if(selected.getNumSelected()> 0)
                     {
-                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                        for(int i = 0; i < selected.getNumSelected(); i++)
+                        {
+                            bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                        }
+                        glDisable(GL_DEPTH_TEST);
+                        manip.moveTo(selected.getCenter());
+                        manip.draw(view_transform);
+                        glEnable(GL_DEPTH_TEST);
                     }
-                    glDisable(GL_DEPTH_TEST);
-                    manip.moveTo(selected.getCenter());
-                    manip.draw(view_transform);
-                    glEnable(GL_DEPTH_TEST);
                 }
-            }
 
-            // top right, y view
-            glViewport(window_width / 2, window_height / 2, window_width / 2, window_height / 2);
-            view_transform = ortho_camera_y.getViewTransform();
-            updateViewTransform(ship, track, line_grid, view_transform);
-            ship.draw();
-            track.draw();
-            if(g_game_mode == EDITOR)
-            {
-                glEnable(GL_BLEND);    
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                line_grid.draw();
-                glDisable(GL_BLEND);
-                if(selected.getNumSelected()> 0)
+                // top right, y view
+                glViewport(window_width / 2, window_height / 2, window_width / 2, window_height / 2);
+                view_transform = ortho_camera_y.getViewTransform();
+                updateViewTransform(ship, track, line_grid, view_transform);
+                ship.draw();
+                track.draw();
+                if(g.game_mode == EDITOR)
                 {
-                    for(int i = 0; i < selected.getNumSelected(); i++)
+                    glEnable(GL_BLEND);    
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    line_grid.draw();
+                    glDisable(GL_BLEND);
+                    if(selected.getNumSelected()> 0)
                     {
-                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                        for(int i = 0; i < selected.getNumSelected(); i++)
+                        {
+                            bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                        }
+                        glDisable(GL_DEPTH_TEST);
+                        manip.moveTo(selected.getCenter());
+                        manip.draw(view_transform);
+                        glEnable(GL_DEPTH_TEST);
                     }
-                    glDisable(GL_DEPTH_TEST);
-                    manip.moveTo(selected.getCenter());
-                    manip.draw(view_transform);
-                    glEnable(GL_DEPTH_TEST);
                 }
-            }
 
-            // top right, y view
-            glViewport(window_width / 2, 0, window_width / 2, window_height / 2);
-            view_transform = ortho_camera_z.getViewTransform();
-            updateViewTransform(ship, track, line_grid, view_transform);
-            ship.draw();
-            track.draw();
-            if(g_game_mode == EDITOR)
-            {
-                glEnable(GL_BLEND);    
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                line_grid.draw();
-                glDisable(GL_BLEND);
-                if(selected.getNumSelected()> 0)
+                // top right, y view
+                glViewport(window_width / 2, 0, window_width / 2, window_height / 2);
+                view_transform = ortho_camera_z.getViewTransform();
+                updateViewTransform(ship, track, line_grid, view_transform);
+                ship.draw();
+                track.draw();
+                if(g.game_mode == EDITOR)
                 {
-                    for(int i = 0; i < selected.getNumSelected(); i++)
+                    glEnable(GL_BLEND);    
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    line_grid.draw();
+                    glDisable(GL_BLEND);
+                    if(selected.getNumSelected()> 0)
                     {
-                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                        for(int i = 0; i < selected.getNumSelected(); i++)
+                        {
+                            bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+                        }
+                        glDisable(GL_DEPTH_TEST);
+                        manip.moveTo(selected.getCenter());
+                        manip.draw(view_transform);
+                        glEnable(GL_DEPTH_TEST);
                     }
-                    glDisable(GL_DEPTH_TEST);
-                    manip.moveTo(selected.getCenter());
-                    manip.draw(view_transform);
-                    glEnable(GL_DEPTH_TEST);
-                }
-            }            
+                }            
             
-            glViewport(0, 0, window_width, window_height);
-            updateProjTransform(ship, track, line_grid, manip, bwfd, proj_transform);
+                glViewport(0, 0, window_width, window_height);
+                updateProjTransform(ship, track, line_grid, manip, bwfd, proj_transform);
+            }            
+        }else if(g.game_mode == PLAY)
+        {
+            gameModeFrame(pers_camera, ship, track, dt);
         }
 
         last_cursor_x = cursor_x;
