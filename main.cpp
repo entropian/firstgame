@@ -26,103 +26,13 @@
 #include "linegrid.h"
 #include "manipulator.h"
 #include "selected.h"
+#include "globaldata.h"
+#include "input.h"
+#include "editor.h"
 
 bool EXIT = false;
 
-// Game mode
-enum GameMode
-{
-    EDITOR,
-    PLAY
-};
-
-enum EditorAction
-{
-    NONE,
-    READ_FROM_FILE,
-    WRITE_TO_FILE,    
-    REMOVE_SELECTED_BOX,
-    COPY_SELECTED_BOX,
-    ADD_NEW_BOX,
-    SELECT_BOX,
-    ADD_SELECT,
-    DESELECT,
-    DESELECT_ALL,
-    CHANGE_BOX_LENGTH,
-    MOVE_SELECTED_BOX
-};
-
-struct GlobalData
-{
-    Vec3 editor_camera_pos;
-    Vec3 editor_camera_euler_ang;
-    GameMode game_mode;
-    bool mode_change;
-    bool editor_multi_view;
-
-    void initGlobalData()
-    {
-        game_mode = PLAY;
-        mode_change = false;
-        editor_multi_view = false;
-    }       
-};
 GlobalData g;
-
-struct Input
-{
-    // Keyboard
-    int w;
-    int a;
-    int s;
-    int d;
-    int r;
-    int f;
-    int q;
-    int n;
-    int o;
-    int b;
-    int c;
-    int g;
-    int p;
-    int h;
-
-    int left_ctrl;
-
-    bool jump_request;
-
-    // Mouse
-    double click_x;
-    double click_y;
-    bool cursor_moved_last_frame;
-
-    bool left_click;
-    bool right_click;
-    
-    Input()
-    {
-        w = 0;
-        a = 0;
-        s = 0;
-        d = 0;
-        r = 0;
-        f = 0;
-        q = 0;
-        n = 0;
-        o = 0;
-        c = 0;
-        g = 0;
-        p = 0;
-        h = 0;
-        left_ctrl = 0;
-        jump_request = false;
-        click_x = 0;
-        click_y = 0;
-        cursor_moved_last_frame = false;
-        left_click = false;
-        right_click = false;
-    }
-};
 Input g_input;
 
 void calcShipAccelState(int accel_states[3], Input& input)
@@ -387,13 +297,10 @@ void cursorPosCallback(GLFWwindow *window, double x, double y)
     g_input.cursor_moved_last_frame = true;
 }
 
-void getNormalizedWindowCoord(float& x, float& y, const unsigned int x_pos, const unsigned int y_pos,
-                              GLFWwindow *window)
+void getNormalizedWindowCoord(float& x, float& y, const unsigned int x_pos, const unsigned int y_pos)
 {
-    int window_width = 0, window_height = 0;
-    glfwGetWindowSize(window, &window_width, &window_height);
-    x = (float)(x_pos - window_width/2.0f) / (window_width / 2.0f);
-    y = (float)(y_pos - window_height/2.0f) / (window_height / 2.0f);
+    x = (float)(x_pos - g.window_width/2.0f) / (g.window_width / 2.0f);
+    y = (float)(y_pos - g.window_height/2.0f) / (g.window_height / 2.0f);
 }
 
 void updateViewTransform(Ship& ship, Track& track, LineGrid& line_grid, const Mat4& view_transform)
@@ -403,6 +310,7 @@ void updateViewTransform(Ship& ship, Track& track, LineGrid& line_grid, const Ma
     line_grid.setViewTransform(view_transform);
 }
 
+// TODO: change this
 void updateProjTransform(Ship& ship, Track& track, LineGrid& line_grid, Manipulator& manip,
                          BoxWireframeDrawer& bwfd, const Mat4& proj_transform)
 {
@@ -476,10 +384,27 @@ GLFWwindow* initWindow(unsigned int width, unsigned int height)
 	return window;
 }
 
+void updateMouseInput(GLFWwindow* window)
+{
+    int window_width, window_height;
+    glfwGetWindowSize(window, &window_width, &window_height);
+    double cur_cursor_x, cur_cursor_y;
+    glfwGetCursorPos(window, &cur_cursor_x, &cur_cursor_y);                    
+    cur_cursor_y = (double)window_height - cur_cursor_y;
+    //static double last_cursor_x = cursor_x;
+    //static double last_cursor_y = cursor_y;
+    g.cursor_movement_x = cur_cursor_x - g.cursor_x;
+    g.cursor_movement_y = cur_cursor_y - g.cursor_y;
+    g.cursor_x = cur_cursor_x;
+    g.cursor_y = cur_cursor_y;
+}
+
 int main()
 {
     unsigned int window_width = 1280;
     unsigned int window_height = 720;
+    g.window_width = window_width;
+    g.window_height = window_height;
 	GLFWwindow *window = initWindow(window_width, window_height);
     glfwSetKeyCallback(window, keyCallback);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
@@ -513,7 +438,6 @@ int main()
     Mat4 proj_transform(Mat4::makePerspective(fov, aspect_ratio, 0.001f, 20.0f));
     Mat4 ortho_transform(Mat4::makeOrthographic(view_volume_width, view_volume_height, 0.001f, 200.0f));
     proj_transform.print();
-    Vec3 editor_camera_pos, editor_camera_euler_ang;
     Mat4 view_transform = pers_camera.getViewTransform();
 
     // Ship transforms
@@ -532,6 +456,7 @@ int main()
     track.readFromFile("track1.txt");
     
     // Line grid
+    // TODO
     LineGrid line_grid(1.0f, 0.0f, 500, view_transform, proj_transform);
 
     // IMGUI stuff
@@ -546,10 +471,8 @@ int main()
     GlobalClock gclock;
     BoxWireframeDrawer bwfd(proj_transform);
 
+    // TODO
     Manipulator manip(proj_transform);
-    Vec3 original_box_color;
-    
-    //Box *selected_box_ptr = NULL;
     Selected selected(track);
 
     glEnable(GL_DEPTH_TEST);
@@ -558,7 +481,11 @@ int main()
 	{
         glfwPollEvents();
         gclock.update();
-        float dt = gclock.getDtSeconds();
+        //float dt = gclock.getDtSeconds();
+        g.dt = gclock.getDtSeconds();
+        float dt = g.dt;
+		glClearColor(0.1f, 0.2f, 0.2f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         /*
         count++;
         if(count == 100)
@@ -567,17 +494,7 @@ int main()
             count = 0;
         }
         */
-		glClearColor(0.1f, 0.2f, 0.2f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);        
-
-        // cursor position and movement
-        double cursor_x, cursor_y;
-        glfwGetCursorPos(window, &cursor_x, &cursor_y);                    
-        cursor_y = (double)window_height - cursor_y;
-        static double last_cursor_x = cursor_x;
-        static double last_cursor_y = cursor_y;
-        float cursor_movement_x = cursor_x - last_cursor_x;
-        float cursor_movement_y = cursor_y - last_cursor_y;
+        updateMouseInput(window);
         
         /*
         ImGui_ImplGlfwGL3_NewFrame();
@@ -595,14 +512,14 @@ int main()
         {
             if(g.mode_change)
             {
-                // Changed mode from play to editor
-                pers_camera.setPosAndOrientation(editor_camera_pos, editor_camera_euler_ang);
+                // mode changed from play to editor in last frame
+                pers_camera.setPosAndOrientation(g.editor_camera_pos, g.editor_camera_euler_ang);
                 g.mode_change = false;
             }
             // Camera movement
             if(g_input.right_click && g_input.cursor_moved_last_frame)
             {
-                pers_camera.turn(cursor_movement_x, cursor_movement_y);
+                pers_camera.turn(g.cursor_movement_x, g.cursor_movement_y);
                 g_input.cursor_moved_last_frame = false;
             }
             moveCamera(pers_camera, g_input, dt);
@@ -629,7 +546,7 @@ int main()
                     if(!left_clicking)
                     {
                         float click_x, click_y;
-                        getNormalizedWindowCoord(click_x, click_y, g_input.click_x, g_input.click_y, window);
+                        getNormalizedWindowCoord(click_x, click_y, g_input.click_x, g_input.click_y);
                         Ray ray = pers_camera.calcRayFromScreenCoord(click_x, click_y);
                         float t;
                         if(selected.getNumSelected() > 0)
@@ -803,8 +720,8 @@ int main()
             } break;
             case CHANGE_BOX_LENGTH:
             {
-                float x_norm = cursor_movement_x / window_width * aspect_ratio;
-                float y_norm = cursor_movement_y / window_height;
+                float x_norm = g.cursor_movement_x / window_width * aspect_ratio;
+                float y_norm = g.cursor_movement_y / window_height;
                 Vec3 cursor_vec = Vec3(pers_camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
                 Vec3 cam_pos = pers_camera.getPosition();                
                 Vec3 box_normal = selected.getSideNormal(box_hit_side);
@@ -814,8 +731,8 @@ int main()
             } break;
             case MOVE_SELECTED_BOX:
             {
-                float x_norm = cursor_movement_x / window_width * aspect_ratio;
-                float y_norm = cursor_movement_y / window_height;
+                float x_norm = g.cursor_movement_x / window_width * aspect_ratio;
+                float y_norm = g.cursor_movement_y / window_height;
                 Vec3 cursor_vec = Vec3(pers_camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
                 Vec3 cam_pos = pers_camera.getPosition();
                 Vec3 hit_point_to_cam = raycast_hit_point - cam_pos;
@@ -965,8 +882,8 @@ int main()
             gameModeFrame(pers_camera, ship, track, dt);
         }
 
-        last_cursor_x = cursor_x;
-        last_cursor_y = cursor_y;        
+        //last_cursor_x = cursor_x;
+        //last_cursor_y = cursor_y;        
         //ImGui::Render();
 		glfwSwapBuffers(window); // Takes about 0.017 sec or 1/60 sec
 	}

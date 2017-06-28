@@ -181,7 +181,7 @@ void Ship::setStaticUniforms(const Mat4& proj_transform, const Vec3& dir_light)
 }
 
 // Called after ship velocity and position are resolved
-void Ship::updateDynamicUniforms(const Mat4& view_transform)
+void Ship::updateDynamicUniforms(const Mat4& view_transform) const
 {
     Mat4 normal_transform = (view_transform * this->transform.inverse()).transpose();
     glUseProgram(shader_program);
@@ -196,7 +196,7 @@ bool Ship::bboxCollide(const BBox& bbox) const
     return bbox.bboxIntersect(bbox);
 }
 
-void Ship::setViewTransform(const Mat4& view_transform)
+void Ship::setViewTransform(const Mat4& view_transform) const
 {
     glUseProgram(shader_program);
     GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
@@ -204,7 +204,7 @@ void Ship::setViewTransform(const Mat4& view_transform)
     glUseProgram(0);
 }
 
-void Ship::setProjTransform(const Mat4& proj_transform)
+void Ship::setProjTransform(const Mat4& proj_transform) const
 {
     glUseProgram(shader_program);
     GLint proj_handle = glGetUniformLocation(shader_program, "proj_mat");
@@ -217,7 +217,7 @@ BBox Ship::getBBox()
     return bbox;
 }
 
-void Ship::draw()
+void Ship::draw() const
 {
     glBindVertexArray(vao);
     glUseProgram(shader_program);

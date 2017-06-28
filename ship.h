@@ -12,15 +12,15 @@ public:
     Ship();
     ~Ship();
     void setStaticUniforms(const Mat4& proj_transform, const Vec3& dir_light);
-    void setViewTransform(const Mat4& view_transform);
-    void setProjTransform(const Mat4& proj_transform);
-    void updateDynamicUniforms(const Mat4& view_transform);
+    void setViewTransform(const Mat4& view_transform) const;
+    void setProjTransform(const Mat4& proj_transform) const;
+    void updateDynamicUniforms(const Mat4& view_transform) const;
     void move(const Vec3& v);
     bool bboxCollide(const BBox& bbox) const;
     BBox getBBox();    
     void updatePosAndVelocity(const float dt, Track& track);
     void calcVelocity(int accel_states[3], const float dt);
-    void draw();
+    void draw() const;
     Vec3 getPos() const;
     void resetPosition();
 //private:

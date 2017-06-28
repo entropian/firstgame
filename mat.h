@@ -254,9 +254,9 @@ struct Mat
         return ret;
     }
 
-    Mat4 inverse()
+    Mat4 inverse() const
     {
-        Mat4 &m = *this;
+        const Mat4 &m = *this;
         const Vec3 a(m(0, 0), m(1, 0), m(2, 0));
         const Vec3 b(m(0, 1), m(1, 1), m(2, 1));
         const Vec3 c(m(0, 2), m(1, 2), m(2, 2));
