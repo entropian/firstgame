@@ -291,136 +291,55 @@ public:
         if(!g.editor_multi_view)
         {
             Mat4 view_transform = pers_camera.getViewTransform();
-            ship.updateDynamicUniforms(view_transform);
-            ship.draw();
-            track.setViewTransform(view_transform);
-            track.draw();
-            if(g.game_mode == EDITOR)
-            {
-                line_grid.setViewTransform(view_transform);
-                glEnable(GL_BLEND);    
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                line_grid.draw();
-                glDisable(GL_BLEND);
-                if(selected.getNumSelected()> 0)
-                {
-                    for(int i = 0; i < selected.getNumSelected(); i++)
-                    {
-                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
-                    }
-                    glDisable(GL_DEPTH_TEST);
-                    manip.moveTo(selected.getCenter());
-                    manip.draw(view_transform);
-                    glEnable(GL_DEPTH_TEST);
-                }
-            }
+            draw(view_transform);
         }else
         {
             // bottom left
             glViewport(0, 0, g.window_width / 2, g.window_height / 2);
             Mat4 view_transform = pers_camera.getViewTransform();
-            ship.updateDynamicUniforms(view_transform);
-            ship.draw();
-            track.setViewTransform(view_transform);
-            track.draw();
-            if(g.game_mode == EDITOR)
-            {
-                line_grid.setViewTransform(view_transform);
-                glEnable(GL_BLEND);    
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                line_grid.draw();
-                glDisable(GL_BLEND);
-                if(selected.getNumSelected()> 0)
-                {
-                    for(int i = 0; i < selected.getNumSelected(); i++)
-                    {
-                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
-                    }
-                    glDisable(GL_DEPTH_TEST);
-                    manip.moveTo(selected.getCenter());
-                    manip.draw(view_transform);
-                    glEnable(GL_DEPTH_TEST);
-                }
-            }
+            draw(view_transform);
 
             // top left, x view
             updateProjTransform(ortho_transform);
             glViewport(0, g.window_height / 2, g.window_width / 2, g.window_height / 2);
             view_transform = ortho_camera_x.getViewTransform();
-            updateViewTransform(view_transform);
-            ship.draw();
-            track.draw();
-            if(g.game_mode == EDITOR)
-            {
-                glEnable(GL_BLEND);    
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                line_grid.draw();
-                glDisable(GL_BLEND);
-                if(selected.getNumSelected()> 0)
-                {
-                    for(int i = 0; i < selected.getNumSelected(); i++)
-                    {
-                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
-                    }
-                    glDisable(GL_DEPTH_TEST);
-                    manip.moveTo(selected.getCenter());
-                    manip.draw(view_transform);
-                    glEnable(GL_DEPTH_TEST);
-                }
-            }
+            draw(view_transform);
 
             // top right, y view
             glViewport(g.window_width / 2, g.window_height / 2, g.window_width / 2, g.window_height / 2);
             view_transform = ortho_camera_y.getViewTransform();
-            updateViewTransform(view_transform);
-            ship.draw();
-            track.draw();
-            if(g.game_mode == EDITOR)
-            {
-                glEnable(GL_BLEND);    
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                line_grid.draw();
-                glDisable(GL_BLEND);
-                if(selected.getNumSelected()> 0)
-                {
-                    for(int i = 0; i < selected.getNumSelected(); i++)
-                    {
-                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
-                    }
-                    glDisable(GL_DEPTH_TEST);
-                    manip.moveTo(selected.getCenter());
-                    manip.draw(view_transform);
-                    glEnable(GL_DEPTH_TEST);
-                }
-            }
+            draw(view_transform);
 
             // top right, y view
             glViewport(g.window_width / 2, 0, g.window_width / 2, g.window_height / 2);
             view_transform = ortho_camera_z.getViewTransform();
-            updateViewTransform(view_transform);
-            ship.draw();
-            track.draw();
-            if(g.game_mode == EDITOR)
-            {
-                glEnable(GL_BLEND);    
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                line_grid.draw();
-                glDisable(GL_BLEND);
-                if(selected.getNumSelected()> 0)
-                {
-                    for(int i = 0; i < selected.getNumSelected(); i++)
-                    {
-                        bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
-                    }
-                    glDisable(GL_DEPTH_TEST);
-                    manip.moveTo(selected.getCenter());
-                    manip.draw(view_transform);
-                    glEnable(GL_DEPTH_TEST);
-                }
-            }            
+            draw(view_transform);
             
             glViewport(0, 0, g.window_width, g.window_height);
             updateProjTransform(pers_transform);
+        }
+    }
+
+private:
+    void draw(const Mat4& view_transform)
+    {
+        updateViewTransform(view_transform);
+        ship.draw();
+        track.draw();
+        glEnable(GL_BLEND);    
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        line_grid.draw();
+        glDisable(GL_BLEND);
+        if(selected.getNumSelected()> 0)
+        {
+            for(int i = 0; i < selected.getNumSelected(); i++)
+            {
+                bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+            }
+            glDisable(GL_DEPTH_TEST);
+            manip.moveTo(selected.getCenter());
+            manip.draw(view_transform);
+            glEnable(GL_DEPTH_TEST);
         }
     }
 
@@ -439,26 +358,25 @@ public:
         manip.setProjTransform(proj_transform);
         bwfd.setProjTransform(proj_transform);
     }
+    
+    PerspectiveCamera pers_camera;
+    OrthographicCamera ortho_camera_x;
+    OrthographicCamera ortho_camera_y;
+    OrthographicCamera ortho_camera_z;
+    Mat4 pers_transform;
+    Mat4 ortho_transform;
+    Manipulator manip;
+    Selected selected;
+    LineGrid line_grid;
+    BoxWireframeDrawer bwfd;
+    Track& track;
+    const Ship& ship;
 
-private:
-        PerspectiveCamera pers_camera;
-        OrthographicCamera ortho_camera_x;
-        OrthographicCamera ortho_camera_y;
-        OrthographicCamera ortho_camera_z;
-        Mat4 pers_transform;
-        Mat4 ortho_transform;
-        Manipulator manip;
-        Selected selected;
-        LineGrid line_grid;
-        BoxWireframeDrawer bwfd;
-        Track& track;
-        const Ship& ship;
-
-        int box_hit_side;
-        Vec3 raycast_hit_point;            
-        bool left_clicking;
-        bool clicking_on_selected_box;
-        bool clicking_on_manipulator;
-        int* last_active_key;
-        float aspect_ratio;
+    int box_hit_side;
+    Vec3 raycast_hit_point;            
+    bool left_clicking;
+    bool clicking_on_selected_box;
+    bool clicking_on_manipulator;
+    int* last_active_key;
+    float aspect_ratio;
 };

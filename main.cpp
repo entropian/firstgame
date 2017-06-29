@@ -303,24 +303,6 @@ void getNormalizedWindowCoord(float& x, float& y, const unsigned int x_pos, cons
     y = (float)(y_pos - g.window_height/2.0f) / (g.window_height / 2.0f);
 }
 
-void updateViewTransform(Ship& ship, Track& track, LineGrid& line_grid, const Mat4& view_transform)
-{
-    ship.updateDynamicUniforms(view_transform);
-    track.setViewTransform(view_transform);
-    line_grid.setViewTransform(view_transform);
-}
-
-// TODO: change this
-void updateProjTransform(Ship& ship, Track& track, LineGrid& line_grid, Manipulator& manip,
-                         BoxWireframeDrawer& bwfd, const Mat4& proj_transform)
-{
-    ship.setProjTransform(proj_transform);
-    track.setProjTransform(proj_transform);
-    line_grid.setProjTransform(proj_transform);
-    manip.setProjTransform(proj_transform);
-    bwfd.setProjTransform(proj_transform);
-}
-
 void gameModeFrame(PerspectiveCamera& camera, Ship& ship, Track& track)
 {
     // Update ship position and velocity based on velocity from last frame
