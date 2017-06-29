@@ -35,7 +35,8 @@ enum EditorAction
     DESELECT,
     DESELECT_ALL,
     CHANGE_BOX_LENGTH,
-    MOVE_SELECTED_BOX
+    MOVE_SELECTED_BOX,
+    DRAG_MOVE_CAMERA
 };
 
 class Editor
@@ -58,7 +59,6 @@ public:
                                       view_volume_width, view_volume_height);
         ortho_transform = Mat4::makeOrthographic(view_volume_width, view_volume_height, 0.001f, 200.0f);
         pers_transform = p_transform;
-        //line_grid = LineGrid(1.0f, 0.0f, 500, pers_camera.getViewTransform(), pers_transform);
 
         box_hit_side = -1;
         raycast_hit_point;            
@@ -77,6 +77,7 @@ public:
         }
         moveCamera(pers_camera, g_input, g.dt);
 
+
         int hit_box_index = -1;
         EditorAction editor_action = NONE;
         {
@@ -93,7 +94,37 @@ public:
                 {
                     float click_x, click_y;
                     getNormalizedWindowCoord(click_x, click_y, g_input.click_x, g_input.click_y);
-                    Ray ray = pers_camera.calcRayFromScreenCoord(click_x, click_y);
+                    // The left click coordinates determines which viewport/camera is active
+                    // for the duration that left click is held down
+                    if(g.editor_multi_view)
+                    {
+                        if(click_x < 0.0f)
+                        {
+                            click_x = click_x * 2.0f + 1.0f;
+                            if(click_y < 0.0f)
+                            {
+                                active_camera = reinterpret_cast<Camera*>(&pers_camera);                         
+                                click_y = click_y * 2.0f + 1.0f;
+                            }else
+                            {
+                                active_camera = reinterpret_cast<Camera*>(&ortho_camera_x);
+                                click_y = click_y * 2.0f - 1.0f;
+                            }
+                        }else
+                        {
+                            click_x = click_x * 2.0f - 1.0f;
+                            if(click_y < 0.0f)
+                            {
+                                active_camera = reinterpret_cast<Camera*>(&ortho_camera_z);
+                                click_y = click_y * 2.0f + 1.0f;
+                            }else
+                            {
+                                active_camera = reinterpret_cast<Camera*>(&ortho_camera_y);
+                                click_y = click_y * 2.0f - 1.0f;
+                            }
+                        }
+                    }
+                    Ray ray = active_camera->calcRayFromScreenCoord(click_x, click_y);
                     float t;
                     if(selected.getNumSelected() > 0)
                     {
@@ -157,16 +188,21 @@ public:
                     }else if(clicking_on_selected_box)
                     {
                         editor_action = CHANGE_BOX_LENGTH;
+                    }else if(active_camera != &pers_camera)
+                    {
+                        // TODO change it to right click?
+                        editor_action = DRAG_MOVE_CAMERA;
                     }else
                     {
                         editor_action = NONE;
                     }
                 }
             }else if(left_clicking && !g_input.left_click)
-            {
+            { 
                 clicking_on_manipulator = false;
                 clicking_on_selected_box = false;
                 left_clicking = false;
+                active_camera = nullptr;
                 editor_action = NONE;
             }else
             {
@@ -248,7 +284,6 @@ public:
             {
                 selected.deselectAll();
             }
-            //selected.select(hit_box_ptr);
             selected.select(hit_box_index);
         } break;
         case ADD_SELECT:
@@ -265,10 +300,13 @@ public:
         } break;
         case CHANGE_BOX_LENGTH:
         {
+            // camera dependent
             float x_norm = g.cursor_movement_x / g.window_width * aspect_ratio;
             float y_norm = g.cursor_movement_y / g.window_height;
-            Vec3 cursor_vec = Vec3(pers_camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
-            Vec3 cam_pos = pers_camera.getPosition();                
+            //Vec3 cursor_vec = Vec3(pers_camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+            //Vec3 cam_pos = pers_camera.getPosition();
+            Vec3 cursor_vec = Vec3(active_camera->getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+            Vec3 cam_pos = active_camera->getPosition();                            
             Vec3 box_normal = selected.getSideNormal(box_hit_side);
             float dist_cam_to_hitpoint = fabs((cam_pos - raycast_hit_point).length());
             float amount = dot(cursor_vec, box_normal) * dist_cam_to_hitpoint;
@@ -276,13 +314,26 @@ public:
         } break;
         case MOVE_SELECTED_BOX:
         {
+            // camera dependent
             float x_norm = g.cursor_movement_x / g.window_width * aspect_ratio;
             float y_norm = g.cursor_movement_y / g.window_height;
-            Vec3 cursor_vec = Vec3(pers_camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
-            Vec3 cam_pos = pers_camera.getPosition();
+            //Vec3 cursor_vec = Vec3(pers_camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+            //Vec3 cam_pos = pers_camera.getPosition();
+            Vec3 cursor_vec = Vec3(active_camera->getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+            Vec3 cam_pos = active_camera->getPosition();            
             Vec3 hit_point_to_cam = raycast_hit_point - cam_pos;
             Vec3 scaled_cursor_vec = cursor_vec * hit_point_to_cam.length();
             manip.moveSelected(selected, scaled_cursor_vec);
+        } break;
+        case DRAG_MOVE_CAMERA:
+        {
+            // camera dependent
+            // TODO
+            float x_norm = g.cursor_movement_x / g.window_width * aspect_ratio;
+            float y_norm = g.cursor_movement_y / g.window_height;
+            Vec3 cursor_vec = Vec3(active_camera->getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+            active_camera->setPosAndOrientation(active_camera->getPosition() +
+                                                cursor_vec, active_camera->getEulerAng());
         } break;
         default:
             break;
@@ -314,10 +365,21 @@ public:
             glViewport(g.window_width / 2, 0, g.window_width / 2, g.window_height / 2);
             view_transform = ortho_camera_z.getViewTransform();
             draw(view_transform);
+
+            printCameraLocations();
             
             glViewport(0, 0, g.window_width, g.window_height);
             updateProjTransform(pers_transform);
         }
+    }
+
+    void printCameraLocations()
+    {
+        std::cout << "Camera locations\n";
+        pers_camera.getPosition().print();
+        ortho_camera_x.getPosition().print();
+        ortho_camera_y.getPosition().print();
+        ortho_camera_z.getPosition().print();
     }
 
 private:
@@ -371,6 +433,7 @@ private:
     BoxWireframeDrawer bwfd;
     Track& track;
     const Ship& ship;
+    Camera* active_camera;
 
     int box_hit_side;
     Vec3 raycast_hit_point;            

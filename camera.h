@@ -21,6 +21,7 @@ public:
     {}
 
     Camera(const Vec3& dir, const Vec3& up_vec, const Vec3& p)
+        :pos(p)
     {
         camera_transform = lookAt(dir, up_vec, p);
         view_transform = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 1.0f)) * camera_transform.inverse();
@@ -30,7 +31,7 @@ public:
         float x_over_cos_phi = dir[0] / cos_phi;
         float z_over_cos_phi = dir[2] / cos_phi;
         float theta = asin(x_over_cos_phi);
-        euler_angle[0] = radToDeg(theta);
+        euler_angle[0] = radToDeg(theta);        
     }
 
     Mat4 lookAt(const Vec3& dir, const Vec3& up_vec, const Vec3& p)
