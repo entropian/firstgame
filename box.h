@@ -90,7 +90,6 @@ public:
 
     void changeLength(const int side_num, const float amount)
     {
-        // TODO: clamp to minimum lengths
         const float min_len = 0.1f;
         switch(side_num)
         {

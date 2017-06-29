@@ -10,7 +10,11 @@ public:
     {
     }
 
+    /*
     LineGrid(const float spacing, const float height, const int num_lines, const Mat4& view_transform,
+        const Mat4& proj_transform)
+    */
+    LineGrid(const float spacing, const float height, const int num_lines,
         const Mat4& proj_transform)
     {
         this->spacing = spacing;
@@ -86,8 +90,8 @@ public:
         
         glUseProgram(shader_program);
         // Uniforms
-        GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
-        glUniformMatrix4fv(view_handle, 1, GL_TRUE, &(view_transform.data[0][0]));
+        //GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
+        //glUniformMatrix4fv(view_handle, 1, GL_TRUE, &(view_transform.data[0][0]));
         GLint proj_handle = glGetUniformLocation(shader_program, "proj_mat");
         glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_transform.data[0][0]));
         Vec3 color(0.7f, 1.0f, 0.0f);
@@ -134,7 +138,6 @@ public:
         glBindVertexArray(0);
         glUseProgram(0);
     }
-
 private:
     GLuint vao, vbo, shader_program;
     int num_vertices;

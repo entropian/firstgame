@@ -2,9 +2,7 @@
 
 #include "box.h"
 // Think about changing box colors, and drawing wireframes
-// Add a new method to Manipulator that attaches it to a Selected
 // move manipulator into selected?
-// think about not using pointers, which could mean sorting track boxes
 
 class Selected
 {
@@ -74,7 +72,6 @@ public:
         {
             track.getBoxAtIndex(box_indices[i]).changeLength(side_num, amount);
         }
-        // TODO: bound_all
         bound_all.changeLength(side_num, amount);
     }
 

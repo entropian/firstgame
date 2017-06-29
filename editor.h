@@ -40,9 +40,10 @@ enum EditorAction
 
 class Editor
 {
-
+public:
     Editor(Track& t, const Ship& s, const float a_r, const float fov, const Mat4 p_transform)
-        :track(t), ship(s), manip(p_transform), selected(t), bwfd(p_transform), aspect_ratio(a_r)
+        :track(t), ship(s), manip(p_transform), selected(t), bwfd(p_transform), aspect_ratio(a_r),
+        line_grid(1.0f, 0.0f, 500, p_transform)
     {
         pers_camera = PerspectiveCamera(Vec3(0.0f, 0.0f, -1.0f),
                              Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 4.0f), fov, aspect_ratio);
@@ -57,7 +58,7 @@ class Editor
                                       view_volume_width, view_volume_height);
         ortho_transform = Mat4::makeOrthographic(view_volume_width, view_volume_height, 0.001f, 200.0f);
         pers_transform = p_transform;
-        LineGrid line_grid(1.0f, 0.0f, 500, pers_camera.getViewTransform(), pers_transform);
+        //line_grid = LineGrid(1.0f, 0.0f, 500, pers_camera.getViewTransform(), pers_transform);
 
         box_hit_side = -1;
         raycast_hit_point;            
@@ -68,15 +69,6 @@ class Editor
     }
     void frame()
     {
-        /*
-        if(g.mode_change)
-        {
-            // mode changed from play to editor in last frame
-            // TODO: should be removed since Editor has its own PerspectiveCamera
-            pers_camera.setPosAndOrientation(editor_camera_pos, editor_camera_euler_ang);
-            g.mode_change = false;
-        }
-        */
         // Camera movement
         if(g_input.right_click && g_input.cursor_moved_last_frame)
         {
@@ -88,7 +80,6 @@ class Editor
         int hit_box_index = -1;
         EditorAction editor_action = NONE;
         {
-
             if(last_active_key && !*(last_active_key))
             {
                 last_active_key = nullptr;
