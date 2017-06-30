@@ -271,20 +271,26 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
         if(action == GLFW_PRESS)
         {
             g_input.left_click = true;
-            glfwGetCursorPos(window, &g_input.click_x, &g_input.click_y);
+            glfwGetCursorPos(window, &(g_input.left_click_x), &(g_input.left_click_y));
             int window_height, window_width;
             glfwGetWindowSize(window, &window_width, &window_height);
-            g_input.click_y = window_height - g_input.click_y;
-            std::cout << "xpos: " << g_input.click_x << " ypos: " << g_input.click_y << std::endl;
+            g_input.left_click_y = window_height - g_input.left_click_y;
+            std::cout << "xpos: " << g_input.left_click_x << " ypos: " << g_input.left_click_y << std::endl;
         }else if(action == GLFW_RELEASE)
         {
             g_input.left_click = false;
         }
-    }else if(button == GLFW_MOUSE_BUTTON_RIGHT)
+    }
+    if(button == GLFW_MOUSE_BUTTON_RIGHT)
     {
         if(action == GLFW_PRESS)
         {
             g_input.right_click = true;
+            glfwGetCursorPos(window, &(g_input.right_click_x), &(g_input.right_click_y));
+            int window_height, window_width;
+            glfwGetWindowSize(window, &window_width, &window_height);
+            g_input.right_click_y = window_height - g_input.right_click_y;
+            std::cout << "xpos: " << g_input.right_click_x << " ypos: " << g_input.right_click_y << std::endl;
         }else if(action == GLFW_RELEASE)
         {
             g_input.right_click = false;
@@ -294,7 +300,7 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 
 void cursorPosCallback(GLFWwindow *window, double x, double y)
 {
-    g_input.cursor_moved_last_frame = true;
+    //g_input.cursor_moved_last_frame = true;
 }
 
 void getNormalizedWindowCoord(float& x, float& y, const unsigned int x_pos, const unsigned int y_pos)
@@ -383,8 +389,8 @@ void updateMouseInput(GLFWwindow* window)
 
 int main()
 {
-    unsigned int window_width = 1280;
-    unsigned int window_height = 720;
+    unsigned int window_width = 1600;
+    unsigned int window_height = 900;
     g.window_width = window_width;
     g.window_height = window_height;
 	GLFWwindow *window = initWindow(window_width, window_height);

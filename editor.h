@@ -36,7 +36,8 @@ enum EditorAction
     DESELECT_ALL,
     CHANGE_BOX_LENGTH,
     MOVE_SELECTED_BOX,
-    DRAG_MOVE_CAMERA
+    DRAG_MOVE_CAMERA,
+    TURN_PERSPECTIVE_CAMERA
 };
 
 class Editor
@@ -70,11 +71,13 @@ public:
     void frame()
     {
         // Camera movement
+        /*
         if(g_input.right_click && g_input.cursor_moved_last_frame)
         {
             pers_camera.turn(g.cursor_movement_x, g.cursor_movement_y);
             g_input.cursor_moved_last_frame = false;
         }
+        */
         moveCamera(pers_camera, g_input, g.dt);
 
 
@@ -93,37 +96,10 @@ public:
                 if(!left_clicking)
                 {
                     float click_x, click_y;
-                    getNormalizedWindowCoord(click_x, click_y, g_input.click_x, g_input.click_y);
+                    getNormalizedWindowCoord(click_x, click_y, g_input.left_click_x, g_input.left_click_y);
                     // The left click coordinates determines which viewport/camera is active
                     // for the duration that left click is held down
-                    if(g.editor_multi_view)
-                    {
-                        if(click_x < 0.0f)
-                        {
-                            click_x = click_x * 2.0f + 1.0f;
-                            if(click_y < 0.0f)
-                            {
-                                active_camera = reinterpret_cast<Camera*>(&pers_camera);                         
-                                click_y = click_y * 2.0f + 1.0f;
-                            }else
-                            {
-                                active_camera = reinterpret_cast<Camera*>(&ortho_camera_x);
-                                click_y = click_y * 2.0f - 1.0f;
-                            }
-                        }else
-                        {
-                            click_x = click_x * 2.0f - 1.0f;
-                            if(click_y < 0.0f)
-                            {
-                                active_camera = reinterpret_cast<Camera*>(&ortho_camera_z);
-                                click_y = click_y * 2.0f + 1.0f;
-                            }else
-                            {
-                                active_camera = reinterpret_cast<Camera*>(&ortho_camera_y);
-                                click_y = click_y * 2.0f - 1.0f;
-                            }
-                        }
-                    }
+                    calcActiveCamAndNewClickCoords(click_x, click_y);
                     Ray ray = active_camera->calcRayFromScreenCoord(click_x, click_y);
                     float t;
                     if(selected.getNumSelected() > 0)
@@ -188,10 +164,6 @@ public:
                     }else if(clicking_on_selected_box)
                     {
                         editor_action = CHANGE_BOX_LENGTH;
-                    }else if(active_camera != &pers_camera)
-                    {
-                        // TODO change it to right click?
-                        editor_action = DRAG_MOVE_CAMERA;
                     }else
                     {
                         editor_action = NONE;
@@ -202,6 +174,48 @@ public:
                 clicking_on_manipulator = false;
                 clicking_on_selected_box = false;
                 left_clicking = false;
+                active_camera = nullptr;
+                editor_action = NONE;
+            }else if(g_input.right_click)
+            {
+                if(!right_clicking)
+                {
+                    if(!g.editor_multi_view)
+                    {
+                        editor_action = TURN_PERSPECTIVE_CAMERA;
+                    }else
+                    {
+                        float click_x, click_y;
+                        getNormalizedWindowCoord(click_x, click_y, g_input.right_click_x, g_input.right_click_y);
+                        calcActiveCamAndNewClickCoords(click_x, click_y);
+                        if(active_camera == &(pers_camera))
+                        {
+                            editor_action = TURN_PERSPECTIVE_CAMERA;
+                        }else
+                        {
+                            editor_action = DRAG_MOVE_CAMERA;
+                        }
+                    }
+                    right_clicking = true;
+                }else
+                {
+                    if(g.editor_multi_view)
+                    {
+                        if(active_camera == &(pers_camera))
+                        {
+                            editor_action = TURN_PERSPECTIVE_CAMERA;
+                        }else
+                        {
+                            editor_action = DRAG_MOVE_CAMERA;
+                        }
+                    }else
+                    {
+                        editor_action = TURN_PERSPECTIVE_CAMERA;
+                    }
+                }
+            }else if(right_clicking && !g_input.right_click)
+            {
+                right_clicking = false;
                 active_camera = nullptr;
                 editor_action = NONE;
             }else
@@ -331,9 +345,15 @@ public:
             // TODO
             float x_norm = g.cursor_movement_x / g.window_width * aspect_ratio;
             float y_norm = g.cursor_movement_y / g.window_height;
-            Vec3 cursor_vec = Vec3(active_camera->getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
+            const float drag_move_multiplier = 17.0f;
+            Vec3 cursor_vec = Vec3(active_camera->getCameraTransform() * Vec4(-x_norm, -y_norm, 0.0f, 0.0f));
+            cursor_vec *= drag_move_multiplier;
             active_camera->setPosAndOrientation(active_camera->getPosition() +
                                                 cursor_vec, active_camera->getEulerAng());
+        } break;
+        case TURN_PERSPECTIVE_CAMERA:
+        {
+            pers_camera.turn(g.cursor_movement_x, g.cursor_movement_y);
         } break;
         default:
             break;
@@ -366,7 +386,7 @@ public:
             view_transform = ortho_camera_z.getViewTransform();
             draw(view_transform);
 
-            printCameraLocations();
+            //printCameraLocations();
             
             glViewport(0, 0, g.window_width, g.window_height);
             updateProjTransform(pers_transform);
@@ -420,6 +440,41 @@ private:
         manip.setProjTransform(proj_transform);
         bwfd.setProjTransform(proj_transform);
     }
+
+    void calcActiveCamAndNewClickCoords(float& x, float& y)
+    {
+        float click_x = x, click_y = y;
+        if(g.editor_multi_view)
+        {
+            if(click_x < 0.0f)
+            {
+                click_x = click_x * 2.0f + 1.0f;
+                if(click_y < 0.0f)
+                {
+                    active_camera = reinterpret_cast<Camera*>(&pers_camera);                         
+                    click_y = click_y * 2.0f + 1.0f;
+                }else
+                {
+                    active_camera = reinterpret_cast<Camera*>(&ortho_camera_x);
+                    click_y = click_y * 2.0f - 1.0f;
+                }
+            }else
+            {
+                click_x = click_x * 2.0f - 1.0f;
+                if(click_y < 0.0f)
+                {
+                    active_camera = reinterpret_cast<Camera*>(&ortho_camera_z);
+                    click_y = click_y * 2.0f + 1.0f;
+                }else
+                {
+                    active_camera = reinterpret_cast<Camera*>(&ortho_camera_y);
+                    click_y = click_y * 2.0f - 1.0f;
+                }
+            }
+        }
+        x = click_x;
+        y = click_y;
+    }
     
     PerspectiveCamera pers_camera;
     OrthographicCamera ortho_camera_x;
@@ -436,8 +491,10 @@ private:
     Camera* active_camera;
 
     int box_hit_side;
-    Vec3 raycast_hit_point;            
+    Vec3 raycast_hit_point;
+    // TODO: move these left and right clicking into g?
     bool left_clicking;
+    bool right_clicking;
     bool clicking_on_selected_box;
     bool clicking_on_manipulator;
     int* last_active_key;
