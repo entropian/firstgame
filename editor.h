@@ -306,11 +306,8 @@ public:
         } break;
         case CHANGE_BOX_LENGTH:
         {
-            // camera dependent
             float x_norm = g.cursor_movement_x / g.window_width * aspect_ratio;
             float y_norm = g.cursor_movement_y / g.window_height;
-            //Vec3 cursor_vec = Vec3(pers_camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
-            //Vec3 cam_pos = pers_camera.getPosition();
             Vec3 cursor_vec = Vec3(active_camera->getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
             Vec3 cam_pos = active_camera->getPosition();                            
             Vec3 box_normal = selected.getSideNormal(box_hit_side);
@@ -322,8 +319,6 @@ public:
         {
             float x_norm = g.cursor_movement_x / g.window_width * aspect_ratio;
             float y_norm = g.cursor_movement_y / g.window_height;
-            //Vec3 cursor_vec = Vec3(pers_camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
-            //Vec3 cam_pos = pers_camera.getPosition();
             Vec3 cursor_vec = Vec3(active_camera->getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
             Vec3 cam_pos = active_camera->getPosition();            
             Vec3 hit_point_to_cam = raycast_hit_point - cam_pos;
@@ -460,6 +455,9 @@ private:
                     click_y = click_y * 2.0f - 1.0f;
                 }
             }
+        }else
+        {
+            active_camera = &pers_camera;
         }
         x = click_x;
         y = click_y;

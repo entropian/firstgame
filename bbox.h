@@ -287,58 +287,6 @@ struct BBox
     }
 
 
-    // TODO: delete this?
-    float calcMinPenetration(int& axis_index, const BBox* b)
-    {
-        // Determine the absolute value of penetration in each axis
-        float min_penetration = 0.0f;
-        int min_index = -1;
-        for(int j = 0; j < 3; j++)
-        {
-            float penetration = 0.0f;
-            if(min[j] < b->min[j] && max[j] < b->max[j])
-            {
-                // From left side
-                penetration = max[j] - b->min[j];
-            }else if(max[j] > b->max[j] && min[j] > b->min[j])
-            {
-                // From right side
-                penetration = min[j] - b->max[j];
-            }else if(min[j] > b->min[j] && max[j] < b->max[j])
-            {
-                // Inside
-                float min_diff = min[j] - b->min[j];
-                float max_diff = max[j] - b->max[j];
-                if(fabs(min_diff) < fabs(max_diff))
-                {
-                    penetration = min_diff;
-                }else
-                {
-                    penetration = max_diff;
-                }
-            }else if(min[j] < b->min[j] && max[j] > b->max[j])
-            {
-                // Outside
-                float diff1 = min[j] - b->max[j];
-                float diff2 = max[j] - b->min[j];
-                if(fabs(diff1) < fabs(diff2))
-                {
-                    penetration = diff1;
-                }else
-                {
-                    penetration = diff2;
-                }
-            }
-            if(fabs(penetration) < fabs(min_penetration))
-            {
-                min_penetration = penetration;
-                min_index = j;
-            };
-        }
-        axis_index = min_index;
-        return min_penetration;
-    }
-
     Vec3 getCenter()
     {
         return min + (max - min) * 0.5f;

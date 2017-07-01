@@ -9,19 +9,41 @@
 #include <fstream>
 #include <sstream>
 
-static unsigned int box_id = 0;
+const float GRID_UNIT = 1.0f;
+
+static float snapToUnit(const float f)
+{
+    float grid_coord = f / GRID_UNIT;
+    float grid_floor = floorf(grid_coord);
+    float grid_ceil = ceilf(grid_coord); 
+    if(f - grid_floor < grid_ceil - f) 
+    {
+        return grid_floor * GRID_UNIT;
+    }else
+    {
+        return grid_ceil * GRID_UNIT;
+    }
+}
+
+static Vec3 snapToGrid(const Vec3& v)
+{
+    return Vec3(snapToUnit(v[0]), snapToUnit(v[1]), snapToUnit(v[2]));
+}
+
 
 class Box : public BBox
 {
 public:
     Box()
-        :BBox(), id(box_id++)
+        :BBox()
     {
     }
     
     Box(const Vec3& a, const Vec3& b)
-        :BBox(a, b), color(1.0f, 1.0f, 1.0f), id(box_id++)
+        :BBox(snapToGrid(a), snapToGrid(b)), color(1.0f, 1.0f, 1.0f)
     {
+        continuous_min = min;
+        continuous_max = max;
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
         glBindVertexArray(vao);
@@ -32,8 +54,10 @@ public:
     }
 
     Box(const Vec3& a, const Vec3& b, const Vec3& c)
-        :BBox(a, b), color(c), id(box_id++)
+        :BBox(snapToGrid(a), snapToGrid(b)), color(c)
     {
+        continuous_min = min;
+        continuous_max = max;
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
         glBindVertexArray(vao);
@@ -41,8 +65,8 @@ public:
         constructBox();
         glBindVertexArray(0);        
         num_vertices = 36;        
-    }    
-
+    }
+    
     void deleteBox()
     {
         glDeleteBuffers(1, &vbo);
@@ -64,7 +88,7 @@ public:
         Vec3 max(half_width, half_height, half_length);
         Vec3 min = -max;
         max += center;
-        min += center;
+        min += center;        
         *this = Box(min, max);
     }
 
@@ -95,60 +119,62 @@ public:
         {
         case 0: // Positive x
         {
-            max[0] += amount;
-            float diff = max[0] - min[0];
+            continuous_max[0] += amount;
+            float diff = continuous_max[0] - continuous_min[0];
             if(diff < min_len)
             {
-                max[0] += min_len - diff;
+                continuous_max[0] += min_len - diff;
             }
         } break;
         case 1: // Negative x
         {
-            min[0] -= amount;
-            float diff = max[0] - min[0];
+            continuous_min[0] -= amount;
+            float diff = continuous_max[0] - continuous_min[0];
             if(diff < min_len)
             {
-                min[0] -= min_len - diff;
+                continuous_min[0] -= min_len - diff;
             }
         } break;
         case 2: // Positive y
         {
-            max[1] += amount;
-            float diff = max[1] - min[1];
+            continuous_max[1] += amount;
+            float diff = continuous_max[1] - continuous_min[1];
             if(diff < min_len)
             {
-                max[1] += min_len - diff;
+                continuous_max[1] += min_len - diff;
             }
         } break;
         case 3: // Negative y
         {
-            min[1] -= amount;
-            float diff = max[1] - min[1];
+            continuous_min[1] -= amount;
+            float diff = continuous_max[1] - continuous_min[1];
             if(diff < min_len)
             {
-                min[1] -= min_len - diff;
+                continuous_min[1] -= min_len - diff;
             }
         } break;
         case 4: // Positive z
         {
-            max[2] += amount;
-            float diff = max[2] - min[2];
+            continuous_max[2] += amount;
+            float diff = continuous_max[2] - continuous_min[2];
             if(diff < min_len)
             {
-                max[2] += min_len - diff;
+                continuous_max[2] += min_len - diff;
             }
         } break;
         case 5: // Negative z
         {
-            min[2] -= amount;
-            float diff = max[2] - min[2];
+            continuous_min[2] -= amount;
+            float diff = continuous_max[2] - continuous_min[2];
             if(diff < min_len)
             {
-                min[2] -= min_len - diff;
+                continuous_min[2] -= min_len - diff;
             }
         } break;
         }
 
+        min = snapToGrid(continuous_min);
+        max = snapToGrid(continuous_max);
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         constructBox();
@@ -157,11 +183,15 @@ public:
 
     virtual void move(const Vec3& v)
     {
-        BBox::move(v);
+        //BBox::move(v);
+        continuous_min += v;
+        continuous_max += v;
+        min = snapToGrid(continuous_min);
+        max = snapToGrid(continuous_max);
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         constructBox();
-        glBindVertexArray(0);        
+        glBindVertexArray(0);
     }
 
     void draw()
@@ -216,11 +246,6 @@ public:
         color = c;
     }
 
-    unsigned int getID()
-    {
-        return id;
-    }
-    
 private:
     void constructBox()
     {
@@ -230,6 +255,7 @@ private:
         Vec3 down_vec(0.0f, -1.0f, 0.0f);
         Vec3 plus_z_vec(0.0f, 0.0f, 1.0f);
         Vec3 minus_z_vec(0.0f, 0.0f, -1.0f);
+
         Vec3 top_right_forward(max);
         Vec3 top_right_back(max[0], max[1], min[2]);
         Vec3 top_left_back(min[0], max[1], min[2]);
@@ -335,10 +361,10 @@ private:
     }
     
     int num_vertices;
-    unsigned int id;
     GLuint vao, vbo, ibo;
     GLuint shader_program;
     Vec3 color;
+    Vec3 continuous_min, continuous_max;
 };
 
 class BoxWireframeDrawer
@@ -359,7 +385,6 @@ public:
         glUseProgram(0);
     }
 
-    // TODO: destructor
     ~BoxWireframeDrawer()
     {
         glDeleteVertexArrays(1, &vao);
@@ -451,5 +476,4 @@ private:
     int num_vertices;
     GLuint vao, vbo, ibo;
     GLuint shader_program;
-    
 };

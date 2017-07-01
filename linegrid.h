@@ -10,10 +10,6 @@ public:
     {
     }
 
-    /*
-    LineGrid(const float spacing, const float height, const int num_lines, const Mat4& view_transform,
-        const Mat4& proj_transform)
-    */
     LineGrid(const float spacing, const float height, const int num_lines,
         const Mat4& proj_transform)
     {
