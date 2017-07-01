@@ -71,16 +71,8 @@ public:
     void frame()
     {
         // Camera movement
-        /*
-        if(g_input.right_click && g_input.cursor_moved_last_frame)
-        {
-            pers_camera.turn(g.cursor_movement_x, g.cursor_movement_y);
-            g_input.cursor_moved_last_frame = false;
-        }
-        */
         moveCamera(pers_camera, g_input, g.dt);
-
-
+        
         int hit_box_index = -1;
         EditorAction editor_action = NONE;
         {
@@ -328,7 +320,6 @@ public:
         } break;
         case MOVE_SELECTED_BOX:
         {
-            // camera dependent
             float x_norm = g.cursor_movement_x / g.window_width * aspect_ratio;
             float y_norm = g.cursor_movement_y / g.window_height;
             //Vec3 cursor_vec = Vec3(pers_camera.getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
@@ -341,8 +332,6 @@ public:
         } break;
         case DRAG_MOVE_CAMERA:
         {
-            // camera dependent
-            // TODO
             float x_norm = g.cursor_movement_x / g.window_width * aspect_ratio;
             float y_norm = g.cursor_movement_y / g.window_height;
             const float drag_move_multiplier = 17.0f;

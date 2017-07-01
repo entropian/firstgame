@@ -20,8 +20,8 @@ public:
     Camera()
     {}
 
-    Camera(const Vec3& dir, const Vec3& up_vec, const Vec3& p)
-        :pos(p)
+    Camera(const Vec3& dir, const Vec3& u_v, const Vec3& p)
+        :pos(p), up_vec(u_v)
     {
         camera_transform = lookAt(dir, up_vec, p);
         view_transform = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 1.0f)) * camera_transform.inverse();
@@ -64,7 +64,7 @@ public:
         dir[2] *= cosf(degToRad(euler_angle[1]));
         dir.normalize();
 
-        camera_transform = lookAt(dir, Vec3(0.0f, 1.0f, 0.0f), pos);
+        camera_transform = lookAt(dir, up_vec, pos);
         view_transform = Mat4::makeTranslation(Vec3(0.0f, 0.0f, 1.0f)) * camera_transform.inverse();
     }
     void move(const Direction direction, const float distance)
@@ -201,7 +201,8 @@ protected:
     Mat4 camera_transform;
     ImagePlane m_image_plane;
     Vec3 euler_angle;
-    Vec3 pos;    
+    Vec3 pos;
+    Vec3 up_vec;
 };
 
 class PerspectiveCamera : public Camera
