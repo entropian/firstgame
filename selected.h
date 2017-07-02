@@ -87,6 +87,14 @@ public:
         bound_all.max += v;
     }
 
+    void syncSelectedMinMax()
+    {
+        for(int i = 0; i < box_indices.size(); i++)
+        {
+            track.getBoxAtIndex(box_indices[i]).syncMinMax();
+        }        
+    }
+
     bool select(const int index)
     {
         for(int i = 0; i < box_indices.size(); i++)
@@ -157,6 +165,7 @@ public:
         }
         return false;
     }
+
 
     void deselectAll()
     {

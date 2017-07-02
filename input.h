@@ -27,9 +27,12 @@ struct Input
     double left_click_y;
     double right_click_x;
     double right_click_y;
+    double scroll_x;
+    double scroll_y;
 
     bool left_click;
     bool right_click;
+    bool scrolling;
     
     Input()
     {
@@ -54,5 +57,14 @@ struct Input
         right_click_y = 0;
         left_click = false;
         right_click = false;
+        scrolling = false;
+        scroll_x = 0.0;
+        scroll_y = 0.0;
+    }
+
+    void resetSomeFlags()
+    {
+        scrolling = false;
     }
 };
+

@@ -37,7 +37,8 @@ enum EditorAction
     CHANGE_BOX_LENGTH,
     MOVE_SELECTED_BOX,
     DRAG_MOVE_CAMERA,
-    TURN_PERSPECTIVE_CAMERA
+    TURN_PERSPECTIVE_CAMERA,
+    ZOOM
 };
 
 class Editor
@@ -58,7 +59,9 @@ public:
         ortho_camera_y = OrthographicCamera(Vec3(0.0f, -1.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f),
                                       Vec3(0.0f, 10.0f, 0.0f),
                                       view_volume_width, view_volume_height);
-        ortho_transform = Mat4::makeOrthographic(view_volume_width, view_volume_height, 0.001f, 200.0f);
+        ortho_transform_x = Mat4::makeOrthographic(view_volume_width, view_volume_height, 0.001f, 200.0f);
+        ortho_transform_y = ortho_transform_x;
+        ortho_transform_z = ortho_transform_x;
         pers_transform = p_transform;
 
         box_hit_side = -1;
@@ -162,7 +165,11 @@ public:
                     }
                 }
             }else if(left_clicking && !g_input.left_click)
-            { 
+            {
+                if(selected.getNumSelected() > 0)
+                {
+                    selected.syncSelectedMinMax();
+                }
                 clicking_on_manipulator = false;
                 clicking_on_selected_box = false;
                 left_clicking = false;
@@ -210,6 +217,15 @@ public:
                 right_clicking = false;
                 active_camera = nullptr;
                 editor_action = NONE;
+            }else if(g_input.scrolling && g.editor_multi_view)
+            {
+                float cursor_x, cursor_y;
+                getNormalizedWindowCoord(cursor_x, cursor_y, g.cursor_x, g.cursor_y);           
+                calcActiveCamAndNewClickCoords(cursor_x, cursor_y);
+                if(active_camera != &pers_camera)
+                {
+                    editor_action = ZOOM;
+                }
             }else
             {
                 // Keyboard actions
@@ -329,7 +345,8 @@ public:
         {
             float x_norm = g.cursor_movement_x / g.window_width * aspect_ratio;
             float y_norm = g.cursor_movement_y / g.window_height;
-            const float drag_move_multiplier = 17.0f;
+            OrthographicCamera* ortho_cam_ptr = reinterpret_cast<OrthographicCamera*>(active_camera);
+            const float drag_move_multiplier = ortho_cam_ptr->getViewWidth() * 3.0f;
             Vec3 cursor_vec = Vec3(active_camera->getCameraTransform() * Vec4(-x_norm, -y_norm, 0.0f, 0.0f));
             cursor_vec *= drag_move_multiplier;
             active_camera->setPosAndOrientation(active_camera->getPosition() +
@@ -338,6 +355,27 @@ public:
         case TURN_PERSPECTIVE_CAMERA:
         {
             pers_camera.turn(g.cursor_movement_x, g.cursor_movement_y);
+        } break;
+        case ZOOM:
+        {
+            OrthographicCamera* ortho_cam_ptr = reinterpret_cast<OrthographicCamera*>(active_camera);
+            float new_view_height = ortho_cam_ptr->getViewHeight() + g_input.scroll_y;
+            if(new_view_height > 0) // So the camera doesn't flip around
+            {
+                ortho_cam_ptr->setViewHeight(new_view_height);
+                float new_view_width = new_view_height * aspect_ratio;
+                Mat4 new_ortho = Mat4::makeOrthographic(new_view_width, new_view_height, 0.001f, 200.0f);
+                if(active_camera == &ortho_camera_x)
+                {
+                    ortho_transform_x = new_ortho;
+                }else if(active_camera == &ortho_camera_y)
+                {
+                    ortho_transform_y = new_ortho;
+                }else if(active_camera = &ortho_camera_z)
+                {
+                    ortho_transform_z = new_ortho;
+                }
+            }
         } break;
         default:
             break;
@@ -355,7 +393,7 @@ public:
             draw(view_transform);
 
             // top left, x view
-            updateProjTransform(ortho_transform);
+            updateProjTransform(ortho_transform_x);
             line_grid.setModelTransform(
                 //Mat4::makeTranslation(ortho_camera_x.getPosition() + Vec3(0.1f, 0.0f, 0.0f)) *
                 Mat4::makeZRotation(90.0f));
@@ -364,12 +402,14 @@ public:
             draw(view_transform);
 
             // top right, y view
+            updateProjTransform(ortho_transform_y);
             line_grid.setModelTransform(Mat4::makeTranslation(Vec3(0.0f, 8.0f, 0.0f)));
             glViewport(g.window_width / 2, g.window_height / 2, g.window_width / 2, g.window_height / 2);
             view_transform = ortho_camera_y.getViewTransform();
             draw(view_transform);
 
             // top right, z view
+            updateProjTransform(ortho_transform_z);
             line_grid.setModelTransform(
                 Mat4::makeXRotation(90.0f));
 
@@ -483,7 +523,9 @@ private:
     OrthographicCamera ortho_camera_y;
     OrthographicCamera ortho_camera_z;
     Mat4 pers_transform;
-    Mat4 ortho_transform;
+    Mat4 ortho_transform_x;
+    Mat4 ortho_transform_y;
+    Mat4 ortho_transform_z;
     Manipulator manip;
     Selected selected;
     LineGrid line_grid;

@@ -234,7 +234,7 @@ public:
         return Vec3();
     }
 
-    Vec3 getColor()
+    Vec3 getColor() const
     {
         return color;
     }
@@ -242,6 +242,12 @@ public:
     void setColor(const Vec3& c)
     {
         color = c;
+    }
+
+    void syncMinMax()
+    {
+        continuous_min = min;
+        continuous_max = max;
     }
 
 private:

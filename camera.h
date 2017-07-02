@@ -237,20 +237,40 @@ public:
     OrthographicCamera(){}
 
     OrthographicCamera(const float width, const float height)
+        :view_width(width), view_height(height)
     {
         m_image_plane.makeOrthographic(width, height);
     }
 
     OrthographicCamera(const Vec3& dir, const Vec3& up_vec, const Vec3& p, const float width, const float height)
-        :Camera(dir, up_vec, p)
+        :Camera(dir, up_vec, p), view_width(width), view_height(height)
     {
         m_image_plane.makeOrthographic(width, height);
     }    
 
-    Ray calcRayFromScreenCoord(const float x, const float y)
+    Ray calcRayFromScreenCoord(const float x, const float y) 
     {
         Ray ray = m_image_plane.calcOrthographicRay(x, y);
         ray = this->transformRay(ray);
         return ray;        
     }
+
+    float getViewWidth() const
+    {
+        return view_width;
+    }
+    float getViewHeight() const
+    {
+        return view_height;
+    }
+    void setViewWidth(const float width)
+    {
+        view_width = width;
+    }
+    void setViewHeight(const float height)
+    {
+        view_height = height;
+    }
+private:
+    float view_width, view_height;
 };

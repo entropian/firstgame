@@ -302,6 +302,13 @@ void cursorPosCallback(GLFWwindow *window, double x, double y)
     //g_input.cursor_moved_last_frame = true;
 }
 
+void scrollCallBack(GLFWwindow* window, double xoffset, double yoffset)
+{
+    g_input.scrolling = true;
+    g_input.scroll_x = xoffset;
+    g_input.scroll_y = yoffset;
+}
+
 void getNormalizedWindowCoord(float& x, float& y, const unsigned int x_pos, const unsigned int y_pos)
 {
     x = (float)(x_pos - g.window_width/2.0f) / (g.window_width / 2.0f);
@@ -396,6 +403,7 @@ int main()
     glfwSetKeyCallback(window, keyCallback);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetCursorPosCallback(window, cursorPosCallback);
+    glfwSetScrollCallback(window, scrollCallBack);
 
     // Setup ImGui binding
     //ImGui_ImplGlfwGL3_Init(window, true);
@@ -503,6 +511,7 @@ int main()
         //last_cursor_x = cursor_x;
         //last_cursor_y = cursor_y;        
         //ImGui::Render();
+        g_input.resetSomeFlags();
 		glfwSwapBuffers(window); // Takes about 0.017 sec or 1/60 sec
 	}
 
