@@ -291,7 +291,6 @@ void Ship::updatePosAndVelocity(const float dt, Track& track)
     transform = displacement * transform;
 }
 
-// TODO: make accleration time based instead of frame based
 void Ship::calcVelocity(int accel_states[3], const float dt)
 {
     float z_forward_accel = -MAX_Z_VELOCITY / 0.5f;

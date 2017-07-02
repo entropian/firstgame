@@ -253,7 +253,6 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         case GLFW_KEY_H:
         {
             g_input.h = 0;
-            // TODO: temp
             g.editor_multi_view = !g.editor_multi_view;
         } break;                        
         case GLFW_KEY_LEFT_CONTROL:

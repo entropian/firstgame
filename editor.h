@@ -45,18 +45,18 @@ class Editor
 public:
     Editor(Track& t, const Ship& s, const float a_r, const float fov, const Mat4 p_transform)
         :track(t), ship(s), manip(p_transform), selected(t), bwfd(p_transform), aspect_ratio(a_r),
-        line_grid(1.0f, 0.0f, 500, p_transform)
+        line_grid(GRID_UNIT, 0.0f, 500, p_transform)
     {
         pers_camera = PerspectiveCamera(Vec3(0.0f, 0.0f, -1.0f),
                              Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 1.0f, 4.0f), fov, aspect_ratio);
         const float view_volume_width = 20.0f;
         const float view_volume_height = view_volume_width / aspect_ratio;
-        ortho_camera_x = OrthographicCamera(Vec3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 0.0f, 10.0f),
+        ortho_camera_z = OrthographicCamera(Vec3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(0.0f, 0.0f, 10.0f),
                                       view_volume_width, view_volume_height);
-        ortho_camera_y = OrthographicCamera(Vec3(1.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(-10.0f, 0.0f, 0.0f),
+        ortho_camera_x = OrthographicCamera(Vec3(1.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f), Vec3(-10.0f, 0.0f, 0.0f),
                               view_volume_width, view_volume_height);
-        ortho_camera_z = OrthographicCamera(Vec3(0.0f, -1.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f),
-                                      Vec3(00.0f, 10.0f, 0.0f),
+        ortho_camera_y = OrthographicCamera(Vec3(0.0f, -1.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f),
+                                      Vec3(0.0f, 10.0f, 0.0f),
                                       view_volume_width, view_volume_height);
         ortho_transform = Mat4::makeOrthographic(view_volume_width, view_volume_height, 0.001f, 200.0f);
         pers_transform = p_transform;
@@ -356,22 +356,29 @@ public:
 
             // top left, x view
             updateProjTransform(ortho_transform);
+            line_grid.setModelTransform(
+                //Mat4::makeTranslation(ortho_camera_x.getPosition() + Vec3(0.1f, 0.0f, 0.0f)) *
+                Mat4::makeZRotation(90.0f));
             glViewport(0, g.window_height / 2, g.window_width / 2, g.window_height / 2);
             view_transform = ortho_camera_x.getViewTransform();
             draw(view_transform);
 
             // top right, y view
+            line_grid.setModelTransform(Mat4::makeTranslation(Vec3(0.0f, 8.0f, 0.0f)));
             glViewport(g.window_width / 2, g.window_height / 2, g.window_width / 2, g.window_height / 2);
             view_transform = ortho_camera_y.getViewTransform();
             draw(view_transform);
 
-            // top right, y view
+            // top right, z view
+            line_grid.setModelTransform(
+                Mat4::makeXRotation(90.0f));
+
             glViewport(g.window_width / 2, 0, g.window_width / 2, g.window_height / 2);
             view_transform = ortho_camera_z.getViewTransform();
             draw(view_transform);
 
             //printCameraLocations();
-            
+            line_grid.setModelTransform(Mat4());
             glViewport(0, 0, g.window_width, g.window_height);
             updateProjTransform(pers_transform);
         }
@@ -394,7 +401,15 @@ private:
         track.draw();
         glEnable(GL_BLEND);    
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        line_grid.draw();
+        if(g.editor_multi_view && active_camera != &pers_camera)
+        {
+            glDisable(GL_DEPTH_TEST);
+            line_grid.draw();
+            glEnable(GL_DEPTH_TEST);
+        }else
+        {
+            line_grid.draw();
+        }
         glDisable(GL_BLEND);
         if(selected.getNumSelected()> 0)
         {

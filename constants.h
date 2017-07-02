@@ -12,4 +12,5 @@ const float TMAX = FLT_MAX;
 const float HUGEVALUE = 1.0E10;
 
 const int NANO_SECONDS_IN_SEC = 1000000000;
+const float GRID_UNIT = 1.0f;
 

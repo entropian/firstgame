@@ -9,8 +9,6 @@
 #include <fstream>
 #include <sstream>
 
-const float GRID_UNIT = 1.0f;
-
 static float snapToUnit(const float f)
 {
     float grid_coord = f / GRID_UNIT;
@@ -30,7 +28,11 @@ static Vec3 snapToGrid(const Vec3& v)
     return Vec3(snapToUnit(v[0]), snapToUnit(v[1]), snapToUnit(v[2]));
 }
 
-
+/*
+  Axially aligned box
+  min and max are snapped to multiples of GRID_UNIT
+  continuous_min and continuous_max keep track of the "real" min and max
+ */
 class Box : public BBox
 {
 public:
@@ -52,7 +54,6 @@ public:
         glBindVertexArray(0);        
         num_vertices = 36;        
     }
-
     Box(const Vec3& a, const Vec3& b, const Vec3& c)
         :BBox(snapToGrid(a), snapToGrid(b)), color(c)
     {
@@ -65,20 +66,17 @@ public:
         constructBox();
         glBindVertexArray(0);        
         num_vertices = 36;        
-    }
-    
+    }    
     void deleteBox()
     {
         glDeleteBuffers(1, &vbo);
         glDeleteBuffers(1, &ibo);
         glDeleteVertexArrays(1, &vao);
     }
-
     Box makeCopy()
     {
         return Box(min, max, color);
     }
-
     Box(const Vec3& center, const float width, const float height, const float length)
     {
         float half_width = fabs(width) * 0.5f;

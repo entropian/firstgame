@@ -333,7 +333,6 @@ struct Mat
 
 static Mat4 lookAt(const Vec3& pos, const Vec3& look_point, const Vec3& up_vec)
 {
-    // TODO: test this
     Vec3 z_vec(normalize(pos - look_point));
     Vec3 x_vec(normalize(cross(z_vec, up_vec)));
     Vec3 y_vec(cross(x_vec, z_vec));

@@ -82,16 +82,17 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * points.size(), &(points[0]), GL_STATIC_DRAW);
 
-        shader_program = loadAndLinkShaders("shaders/default.vs", "shaders/color.fs");
+        shader_program = loadAndLinkShaders("shaders/model.vs", "shaders/color.fs");
         
         glUseProgram(shader_program);
         // Uniforms
-        //GLint view_handle = glGetUniformLocation(shader_program, "view_mat");
-        //glUniformMatrix4fv(view_handle, 1, GL_TRUE, &(view_transform.data[0][0]));
         GLint proj_handle = glGetUniformLocation(shader_program, "proj_mat");
         glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_transform.data[0][0]));
         Vec3 color(0.7f, 1.0f, 0.0f);
         glUniform3fv(glGetUniformLocation(shader_program, "color"), 1, (const float*)(color.data));
+        GLint model_handle = glGetUniformLocation(shader_program, "model_mat");
+        Mat4 model_transform;
+        glUniformMatrix4fv(model_handle, 1, GL_TRUE, &(model_transform.data[0][0]));
 
         // Attributes
         GLsizei stride = sizeof(GLfloat) * 3;
@@ -123,6 +124,14 @@ public:
         glUseProgram(shader_program);
         GLint proj_handle = glGetUniformLocation(shader_program, "proj_mat");
         glUniformMatrix4fv(proj_handle, 1, GL_TRUE, &(proj_transform.data[0][0]));
+        glUseProgram(0);
+    }
+
+    void setModelTransform(const Mat4& model_transform)
+    {
+        glUseProgram(shader_program);
+        GLint model_handle = glGetUniformLocation(shader_program, "model_mat");
+        glUniformMatrix4fv(model_handle, 1, GL_TRUE, &(model_transform.data[0][0]));
         glUseProgram(0);
     }    
 

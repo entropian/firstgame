@@ -35,6 +35,8 @@ public:
     // Remove selected boxes from track
     void remove()
     {
+        // TODO: when I copied multiple boxes then tried to remove them together,
+        // not all of them were removed.
         for(int i = 0; i < box_indices.size(); i++)
         {
             track.getBoxAtIndex(box_indices[i]).setColor(box_colors[i]);
