@@ -68,7 +68,7 @@ public:
         raycast_hit_point;            
         left_clicking = false;
         clicking_on_selected_box = false;
-        clicking_on_manipulator = false;
+        click_to_move_box = false;
         last_active_key = nullptr;
     }
     void frame()
@@ -99,36 +99,61 @@ public:
                     float t;
                     if(selected.getNumSelected() > 0)
                     {
-                        if(manip.rayIntersect(t, ray))
+                        if(active_camera == &pers_camera)
                         {
-                            clicking_on_manipulator = true;
-                            editor_action = NONE;
-                        }else
+                            if(manip.rayIntersect(t, ray))
+                            {
+                                click_to_move_box = true;
+                                editor_action = NONE;
+                            }else
+                            {
+                                hit_box_index = track.rayIntersectTrack(box_hit_side, t, ray);
+                                if(hit_box_index == -1)
+                                {
+                                    if(g_input.left_ctrl)
+                                    {
+                                        editor_action = NONE;
+                                    }else
+                                    {
+                                        editor_action = DESELECT_ALL;
+                                    }
+                                }else if(selected.hasIndex(hit_box_index))
+                                {
+                                    if(g_input.left_ctrl)
+                                    {
+                                        editor_action = DESELECT;
+                                    }else
+                                    {
+                                        raycast_hit_point = ray.calcPoint(t);
+                                        clicking_on_selected_box = true;
+                                        editor_action = NONE;
+                                    }
+                                }else
+                                {
+                                    raycast_hit_point = ray.calcPoint(t);
+                                    if(g_input.left_ctrl)
+                                    {
+                                        editor_action = ADD_SELECT;
+                                    }else
+                                    {
+                                        editor_action = SELECT_BOX;
+                                    }
+                                }
+                            }
+                        }else // Left clicked on an ortho view
                         {
                             hit_box_index = track.rayIntersectTrack(box_hit_side, t, ray);
                             if(hit_box_index == -1)
                             {
-                                if(g_input.left_ctrl)
-                                {
-                                    editor_action = NONE;
-                                }else
+                                if(!g_input.left_ctrl)
                                 {
                                     editor_action = DESELECT_ALL;
-                                }
+                                }                                
                             }else if(selected.hasIndex(hit_box_index))
                             {
-                                if(g_input.left_ctrl)
-                                {
-                                    editor_action = DESELECT;
-                                }else
-                                {
-                                    raycast_hit_point = ray.calcPoint(t);
-                                    clicking_on_selected_box = true;
-                                    editor_action = NONE;
-                                }
-                            }else
+                                click_to_move_box = true;
+                            }else 
                             {
-                                raycast_hit_point = ray.calcPoint(t);
                                 if(g_input.left_ctrl)
                                 {
                                     editor_action = ADD_SELECT;
@@ -153,7 +178,7 @@ public:
                     left_clicking = true;
                 }else // Holding down left click
                 {
-                    if(clicking_on_manipulator)
+                    if(click_to_move_box)
                     {
                         editor_action = MOVE_SELECTED_BOX;
                     }else if(clicking_on_selected_box)
@@ -170,7 +195,7 @@ public:
                 {
                     selected.syncSelectedMinMax();
                 }
-                clicking_on_manipulator = false;
+                click_to_move_box = false;
                 clicking_on_selected_box = false;
                 left_clicking = false;
                 active_camera = nullptr;
@@ -336,10 +361,18 @@ public:
             float x_norm = g.cursor_movement_x / g.window_width * aspect_ratio;
             float y_norm = g.cursor_movement_y / g.window_height;
             Vec3 cursor_vec = Vec3(active_camera->getCameraTransform() * Vec4(x_norm, y_norm, 0.0f, 0.0f));
-            Vec3 cam_pos = active_camera->getPosition();            
-            Vec3 hit_point_to_cam = raycast_hit_point - cam_pos;
-            Vec3 scaled_cursor_vec = cursor_vec * hit_point_to_cam.length();
-            manip.moveSelected(selected, scaled_cursor_vec);
+            if(g.editor_multi_view && active_camera != &pers_camera)
+            {
+                OrthographicCamera* ortho_cam_ptr = reinterpret_cast<OrthographicCamera*>(active_camera);
+                const float drag_move_multiplier = ortho_cam_ptr->getViewWidth();
+                selected.move(cursor_vec * drag_move_multiplier);
+            }else
+            {
+                Vec3 cam_pos = active_camera->getPosition();            
+                Vec3 hit_point_to_cam = raycast_hit_point - cam_pos;
+                Vec3 scaled_cursor_vec = cursor_vec * hit_point_to_cam.length();
+                manip.moveSelected(selected, scaled_cursor_vec);
+            }
         } break;
         case DRAG_MOVE_CAMERA:
         {
@@ -360,7 +393,7 @@ public:
         {
             OrthographicCamera* ortho_cam_ptr = reinterpret_cast<OrthographicCamera*>(active_camera);
             float new_view_height = ortho_cam_ptr->getViewHeight() + g_input.scroll_y;
-            if(new_view_height > 0) // So the camera doesn't flip around
+
             {
                 ortho_cam_ptr->setViewHeight(new_view_height);
                 float new_view_width = new_view_height * aspect_ratio;
@@ -384,13 +417,13 @@ public:
         if(!g.editor_multi_view)
         {
             Mat4 view_transform = pers_camera.getViewTransform();
-            draw(view_transform);
+            persViewDraw(view_transform);
         }else
         {
             // bottom left
             glViewport(0, 0, g.window_width / 2, g.window_height / 2);
             Mat4 view_transform = pers_camera.getViewTransform();
-            draw(view_transform);
+            persViewDraw(view_transform);
 
             // top left, x view
             updateProjTransform(ortho_transform_x);
@@ -399,14 +432,14 @@ public:
                 Mat4::makeZRotation(90.0f));
             glViewport(0, g.window_height / 2, g.window_width / 2, g.window_height / 2);
             view_transform = ortho_camera_x.getViewTransform();
-            draw(view_transform);
+            orthoViewDraw(view_transform);
 
             // top right, y view
             updateProjTransform(ortho_transform_y);
             line_grid.setModelTransform(Mat4::makeTranslation(Vec3(0.0f, 8.0f, 0.0f)));
             glViewport(g.window_width / 2, g.window_height / 2, g.window_width / 2, g.window_height / 2);
             view_transform = ortho_camera_y.getViewTransform();
-            draw(view_transform);
+            orthoViewDraw(view_transform);
 
             // top right, z view
             updateProjTransform(ortho_transform_z);
@@ -415,7 +448,7 @@ public:
 
             glViewport(g.window_width / 2, 0, g.window_width / 2, g.window_height / 2);
             view_transform = ortho_camera_z.getViewTransform();
-            draw(view_transform);
+            orthoViewDraw(view_transform);
 
             //printCameraLocations();
             line_grid.setModelTransform(Mat4());
@@ -434,34 +467,48 @@ public:
     }
 
 private:
-    void draw(const Mat4& view_transform)
+    void persViewDraw(const Mat4& view_transform)
     {
         updateViewTransform(view_transform);
         ship.draw();
         track.draw();
         glEnable(GL_BLEND);    
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        if(g.editor_multi_view && active_camera != &pers_camera)
-        {
-            glDisable(GL_DEPTH_TEST);
-            line_grid.draw();
-            glEnable(GL_DEPTH_TEST);
-        }else
-        {
-            line_grid.draw();
-        }
+        line_grid.draw();
         glDisable(GL_BLEND);
         if(selected.getNumSelected()> 0)
         {
+            glDisable(GL_DEPTH_TEST);
             for(int i = 0; i < selected.getNumSelected(); i++)
             {
                 bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
             }
-            glDisable(GL_DEPTH_TEST);
             manip.moveTo(selected.getCenter());
             manip.draw(view_transform);
             glEnable(GL_DEPTH_TEST);
         }
+    }
+
+    void orthoViewDraw(const Mat4& view_transform)
+    {
+        updateViewTransform(view_transform);
+        ship.draw();
+        track.draw();
+        glEnable(GL_BLEND);    
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDisable(GL_DEPTH_TEST);
+        line_grid.draw();
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+        if(selected.getNumSelected()> 0)
+        {
+            glDisable(GL_DEPTH_TEST);
+            for(int i = 0; i < selected.getNumSelected(); i++)
+            {
+                bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
+            }
+            glEnable(GL_DEPTH_TEST);
+        }        
     }
 
     void updateViewTransform(const Mat4& view_transform)
@@ -540,7 +587,7 @@ private:
     bool left_clicking;
     bool right_clicking;
     bool clicking_on_selected_box;
-    bool clicking_on_manipulator;
+    bool click_to_move_box;
     int* last_active_key;
     float aspect_ratio;
 };
