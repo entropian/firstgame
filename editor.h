@@ -10,7 +10,7 @@
 #include "input.h"
 #include "mat.h"
 #include "camera.h"
-#include "manipulator.h"
+#include "translator.h"
 #include "selected.h"
 #include "track.h"
 #include "ship.h"
@@ -45,7 +45,7 @@ class Editor
 {
 public:
     Editor(Track& t, const Ship& s, const float a_r, const float fov, const Mat4 p_transform)
-        :track(t), ship(s), manip(p_transform), selected(t), bwfd(p_transform), aspect_ratio(a_r),
+        :track(t), ship(s), translator(p_transform), selected(t), bwfd(p_transform), aspect_ratio(a_r),
         line_grid(GRID_UNIT, 0.0f, 500, p_transform)
     {
         pers_camera = PerspectiveCamera(Vec3(0.0f, 0.0f, -1.0f),
@@ -101,7 +101,7 @@ public:
                     {
                         if(active_camera == &pers_camera)
                         {
-                            if(manip.rayIntersect(t, ray))
+                            if(translator.rayIntersect(t, ray))
                             {
                                 click_to_move_box = true;
                                 editor_action = NONE;
@@ -371,7 +371,7 @@ public:
                 Vec3 cam_pos = active_camera->getPosition();            
                 Vec3 hit_point_to_cam = raycast_hit_point - cam_pos;
                 Vec3 scaled_cursor_vec = cursor_vec * hit_point_to_cam.length();
-                manip.moveSelected(selected, scaled_cursor_vec);
+                translator.moveSelected(selected, scaled_cursor_vec);
             }
         } break;
         case DRAG_MOVE_CAMERA:
@@ -483,8 +483,8 @@ private:
             {
                 bwfd.drawWireframeOnBox(selected.getBox(i), view_transform);
             }
-            manip.moveTo(selected.getCenter());
-            manip.draw(view_transform);
+            translator.moveTo(selected.getCenter());
+            translator.draw(view_transform);
             glEnable(GL_DEPTH_TEST);
         }
     }
@@ -523,7 +523,7 @@ private:
         ship.setProjTransform(proj_transform);
         track.setProjTransform(proj_transform);
         line_grid.setProjTransform(proj_transform);
-        manip.setProjTransform(proj_transform);
+        translator.setProjTransform(proj_transform);
         bwfd.setProjTransform(proj_transform);
     }
 
@@ -573,7 +573,7 @@ private:
     Mat4 ortho_transform_x;
     Mat4 ortho_transform_y;
     Mat4 ortho_transform_z;
-    Manipulator manip;
+    Translator translator;
     Selected selected;
     LineGrid line_grid;
     BoxWireframeDrawer bwfd;

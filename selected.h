@@ -1,8 +1,5 @@
 #pragma once
-
 #include "box.h"
-// Think about changing box colors, and drawing wireframes
-// move manipulator into selected?
 
 class Selected
 {

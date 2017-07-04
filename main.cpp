@@ -24,8 +24,6 @@
 #include "track.h"
 #include "globalclock.h"
 #include "linegrid.h"
-#include "manipulator.h"
-#include "selected.h"
 #include "globaldata.h"
 #include "input.h"
 #include "editor.h"

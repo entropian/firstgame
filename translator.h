@@ -13,10 +13,10 @@
 
 
 
-class Manipulator
+class Translator
 {
 public:
-    Manipulator(const Mat4& proj_transform)
+    Translator(const Mat4& proj_transform)
     {
         std::vector<Vec3> cone_verts;
         const float cone_radius = 0.25f;
@@ -93,7 +93,7 @@ public:
         }
     }
 
-    ~Manipulator()
+    ~Translator()
     {
         glDeleteBuffers(1, &vao);
         glDeleteVertexArrays(1, &vao);
@@ -224,4 +224,4 @@ private:
     static BBox arrow_bboxes_at_origin[3];
 };
 
-BBox Manipulator::arrow_bboxes_at_origin[3];
+BBox Translator::arrow_bboxes_at_origin[3];
