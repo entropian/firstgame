@@ -270,98 +270,99 @@ private:
         Vec3 bottom_right_forward(max[0], min[1], max[2]);
         Vec3 bottom_right_back(max[0], min[1], min[2]);
 
-        std::vector<GLfloat> vertices;
-        // Top
-        vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);
-        vertices.insert(vertices.end(), up_vec.data, up_vec.data+3);
-        vertices.insert(vertices.end(), top_left_forward.data, top_left_forward.data+3);
-        vertices.insert(vertices.end(), up_vec.data, up_vec.data+3);
-        vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);
-        vertices.insert(vertices.end(), up_vec.data, up_vec.data+3);
+        		Vec3 vertices[12 * 6]; // 12 faces * 6 Vec3 per face
+		int count = 0;
+		// Top
+		vertices[count++] = top_left_back;
+		vertices[count++] = up_vec;
+		vertices[count++] = top_left_forward;
+		vertices[count++] = up_vec;
+		vertices[count++] = top_right_back;
+		vertices[count++] = up_vec;
 
-        vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);
-        vertices.insert(vertices.end(), up_vec.data, up_vec.data+3);
-        vertices.insert(vertices.end(), top_left_forward.data, top_left_forward.data+3);
-        vertices.insert(vertices.end(), up_vec.data, up_vec.data+3);
-        vertices.insert(vertices.end(), top_right_forward.data, top_right_forward.data+3);
-        vertices.insert(vertices.end(), up_vec.data, up_vec.data+3);
+		vertices[count++] = top_right_back;
+		vertices[count++] = up_vec;
+		vertices[count++] = top_left_forward;
+		vertices[count++] = up_vec;
+		vertices[count++] = top_right_forward;
+		vertices[count++] = up_vec;
 
-        // Bottom
-        vertices.insert(vertices.end(), bottom_right_back.data, bottom_right_back.data+3);
-        vertices.insert(vertices.end(), down_vec.data, down_vec.data+3);
-        vertices.insert(vertices.end(), bottom_right_forward.data, bottom_right_forward.data+3);
-        vertices.insert(vertices.end(), down_vec.data, down_vec.data+3);
-        vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
-        vertices.insert(vertices.end(), down_vec.data, down_vec.data+3);
-            
-        vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
-        vertices.insert(vertices.end(), down_vec.data, down_vec.data+3);
-        vertices.insert(vertices.end(), bottom_right_forward.data, bottom_right_forward.data+3);
-        vertices.insert(vertices.end(), down_vec.data, down_vec.data+3);
-        vertices.insert(vertices.end(), bottom_left_forward.data, bottom_left_forward.data+3);
-        vertices.insert(vertices.end(), down_vec.data, down_vec.data+3);
+		// Bottom
+		vertices[count++] = bottom_right_back;
+		vertices[count++] = down_vec;
+		vertices[count++] = bottom_right_forward;
+		vertices[count++] = down_vec;
+		vertices[count++] = bottom_left_back;
+		vertices[count++] = down_vec;
 
-        // Left
-        vertices.insert(vertices.end(), bottom_left_forward.data, bottom_left_forward.data+3);
-        vertices.insert(vertices.end(), left_vec.data, left_vec.data+3);
-        vertices.insert(vertices.end(), top_left_forward.data, top_left_forward.data+3);
-        vertices.insert(vertices.end(), left_vec.data, left_vec.data+3);
-        vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
-        vertices.insert(vertices.end(), left_vec.data, left_vec.data+3);
-            
-        vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
-        vertices.insert(vertices.end(), left_vec.data, left_vec.data+3);
-        vertices.insert(vertices.end(), top_left_forward.data, top_left_forward.data+3);
-        vertices.insert(vertices.end(), left_vec.data, left_vec.data+3);
-        vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);
-        vertices.insert(vertices.end(), left_vec.data, left_vec.data+3);
+		vertices[count++] = bottom_left_back;
+		vertices[count++] = down_vec;
+		vertices[count++] = bottom_right_forward;
+		vertices[count++] = down_vec;
+		vertices[count++] = bottom_left_forward;
+		vertices[count++] = down_vec;
 
-        // Right
-        vertices.insert(vertices.end(), bottom_right_back.data, bottom_right_back.data+3);
-        vertices.insert(vertices.end(), right_vec.data, right_vec.data+3);
-        vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);
-        vertices.insert(vertices.end(), right_vec.data, right_vec.data+3);
-        vertices.insert(vertices.end(), bottom_right_forward.data, bottom_right_forward.data+3);
-        vertices.insert(vertices.end(), right_vec.data, right_vec.data+3);
-            
-        vertices.insert(vertices.end(), bottom_right_forward.data, bottom_right_forward.data+3);
-        vertices.insert(vertices.end(), right_vec.data, right_vec.data+3);
-        vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);
-        vertices.insert(vertices.end(), right_vec.data, right_vec.data+3);
-        vertices.insert(vertices.end(), top_right_forward.data, top_right_forward.data+3);
-        vertices.insert(vertices.end(), right_vec.data, right_vec.data+3);
+		// Left
+		vertices[count++] = bottom_left_forward;
+        vertices[count++] = left_vec;
+        vertices[count++] = top_left_forward;
+        vertices[count++] = left_vec;
+        vertices[count++] = bottom_left_back;
+        vertices[count++] = left_vec;
 
-        // Forward
-        vertices.insert(vertices.end(), bottom_right_forward.data, bottom_right_forward.data+3);
-        vertices.insert(vertices.end(), plus_z_vec.data, plus_z_vec.data+3);
-        vertices.insert(vertices.end(), bottom_left_forward.data, bottom_left_forward.data+3);
-        vertices.insert(vertices.end(), plus_z_vec.data, plus_z_vec.data+3);
-        vertices.insert(vertices.end(), top_right_forward.data, top_right_forward.data+3);
-        vertices.insert(vertices.end(), plus_z_vec.data, plus_z_vec.data+3);
-            
-        vertices.insert(vertices.end(), bottom_left_forward.data, bottom_left_forward.data+3);
-        vertices.insert(vertices.end(), plus_z_vec.data, plus_z_vec.data+3);
-        vertices.insert(vertices.end(), top_right_forward.data, top_right_forward.data+3);
-        vertices.insert(vertices.end(), plus_z_vec.data, plus_z_vec.data+3);
-        vertices.insert(vertices.end(), top_left_forward.data, top_left_forward.data+3);
-        vertices.insert(vertices.end(), plus_z_vec.data, plus_z_vec.data+3);
+        vertices[count++] = bottom_left_back;
+        vertices[count++] = left_vec;
+        vertices[count++] = top_left_forward;
+        vertices[count++] = left_vec;
+        vertices[count++] = top_left_back;
+        vertices[count++] = left_vec;
 
-        // Back
-        vertices.insert(vertices.end(), bottom_left_back.data, bottom_left_back.data+3);
-        vertices.insert(vertices.end(), minus_z_vec.data, minus_z_vec.data+3);
-        vertices.insert(vertices.end(), bottom_right_back.data, bottom_right_back.data+3);
-        vertices.insert(vertices.end(), minus_z_vec.data, minus_z_vec.data+3);
-        vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);        
-        vertices.insert(vertices.end(), minus_z_vec.data, minus_z_vec.data+3);
-            
-        vertices.insert(vertices.end(), bottom_right_back.data, bottom_right_back.data+3);
-        vertices.insert(vertices.end(), minus_z_vec.data, minus_z_vec.data+3);
-        vertices.insert(vertices.end(), top_right_back.data, top_right_back.data+3);
-        vertices.insert(vertices.end(), minus_z_vec.data, minus_z_vec.data+3);
-        vertices.insert(vertices.end(), top_left_back.data, top_left_back.data+3);        
-        vertices.insert(vertices.end(), minus_z_vec.data, minus_z_vec.data+3);
+		// Right
+        vertices[count++] = bottom_right_back;
+        vertices[count++] = right_vec;
+        vertices[count++] = top_right_back;
+        vertices[count++] = right_vec;
+        vertices[count++] = bottom_right_forward;
+        vertices[count++] = right_vec;
 
-        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertices.size(), &(vertices[0]), GL_STATIC_DRAW);
+        vertices[count++] = bottom_right_forward;
+        vertices[count++] = right_vec;
+        vertices[count++] = top_right_back;
+        vertices[count++] = right_vec;
+        vertices[count++] = top_right_forward;
+        vertices[count++] = right_vec;
+
+		// Forward
+        vertices[count++] = bottom_right_forward;
+        vertices[count++] = plus_z_vec;
+        vertices[count++] = bottom_left_forward;
+        vertices[count++] = plus_z_vec;
+        vertices[count++] = top_right_forward;
+        vertices[count++] = plus_z_vec;
+
+        vertices[count++] = bottom_left_forward;
+        vertices[count++] = plus_z_vec;
+        vertices[count++] = top_right_forward;
+        vertices[count++] = plus_z_vec;
+        vertices[count++] = top_left_forward;
+        vertices[count++] = plus_z_vec;
+
+		// Back
+        vertices[count++] = bottom_left_back;
+        vertices[count++] = minus_z_vec;
+        vertices[count++] = bottom_right_back;
+        vertices[count++] = minus_z_vec;
+        vertices[count++] = top_left_back;
+        vertices[count++] = minus_z_vec;
+
+        vertices[count++] = bottom_right_back;
+        vertices[count++] = minus_z_vec;
+        vertices[count++] = top_right_back;
+        vertices[count++] = minus_z_vec;
+        vertices[count++] = top_left_back;
+        vertices[count++] = minus_z_vec;
+
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 12 * 6 * 3, &(vertices[0][0]), GL_STATIC_DRAW);
     }
     
     int num_vertices;
